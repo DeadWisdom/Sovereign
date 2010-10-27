@@ -5,12 +5,6 @@ try:
 except ImportError:
     import simplejson as json
 
-try:
-    import psutil
-except ImportError:
-    psutil = None
-    logging.warn("psutil not found, no process information will be available.")
-
 from sovereign.process import Process
 from sovereign.util import path_insert
 from base import Service
