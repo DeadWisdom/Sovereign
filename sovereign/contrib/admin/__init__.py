@@ -6,6 +6,8 @@ MEDIA_PATH = os.path.abspath(
 )
 
 class Service(service.Service):
+    name = "admin"
+    
     def init(self):
         self._index = util.MutableFile( os.path.join(MEDIA_PATH, 'index.html') )
         self._media = static.Static( root = MEDIA_PATH, volatile = True )
@@ -18,20 +20,26 @@ class Service(service.Service):
             return self._media
     
     def index(self, env):
-            content = template.simple_template(self._index.read(), {
-                'url': env['PATH_INFO'],
-                'title': 'Administration',
-                'msg': 'We are sovereign',
-            })
-            return http.Response(content=content)
+        content = template.simple_template(self._index.read(), {
+            'url': env['PATH_INFO'],
+            'title': 'Administration',
+            'msg': 'We are sovereign',
+            'service_types': util.json.dumps(self.get_service_types())
+        })
+        return http.Response(content=content)
     
-    def services(self, environ, start_response):
-        path = environ['PATH_INFO']
-        if path == '*.json':
-            root = os.path.abspath( self._manager.path )
-            services = []
-            for token in self._manager.services:
-                services.append(token.info())
-            services.sort(key=lambda x: x.get('name', '-'))
-            content = simplejson.dumps(services)
-            return http.Response(content=content, type='text/javascript')(environ, start_response)
+    def get_service_types(self):
+        types = {}
+        for name, cls in service.Service.classes.items():
+            types[name] = {
+                'type': name,
+                'fields': [self.get_service_field(x) for x in cls.settings]
+            }
+        return tuple( types[k] for k in sorted(types.keys()) )
+    
+    def get_service_field(self, field):
+        return {
+            'type': field.__class__.__name__,
+            'default': field.get_simple(field.default),
+            'help': field.help
+        }

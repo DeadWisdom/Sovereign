@@ -1,8 +1,5 @@
-import os, shutil, logging
-from sovereign.util import shell
-
-CMD = logging.INFO-1
-logging.addLevelName(CMD, "CMD")
+import os, shutil
+from sovereign.util import shell, json
 
 class DeploymentBase(object):
     _classes = {}
@@ -21,21 +18,10 @@ class DeploymentBase(object):
     def __init__(self, service, src):
         self.service = service
         self.src = src
+        self.logger = service.logger
     
     def command(self, *args, **kw):
-        logging.log(CMD, " ".join(args))
-        out, err = shell(self.service.path, " ".join(args))
-        
-        if err:
-            for line in err.split('\n'):
-                logging.info('    ' + line)
-            
-        if out:
-            if not kw.get('suppress_out', False):
-                for line in out.split('\n'):
-                    logging.info('    ' + line)
-        
-        return out, err
+        return self.service.command(*args, **kw)
     
     def prepare(self):
         try:
@@ -43,6 +29,18 @@ class DeploymentBase(object):
         except OSError, e:
             if (e.errno != 17):
                 raise
+        
+        path = os.path.join(self.service.path, 'service.json')
+        if os.path.exists(path):
+            o = open(path, 'r')
+            try:
+                self.service.update_settings(repo=json.load(o))
+            except:
+                self.service.logger.exception("Unable to load service.json")
+                pass
+            finally:
+                o.close()
+        
     
     def remove(self):
         shutil.rmtree(self.service.path)
@@ -51,21 +49,24 @@ class DeploymentBase(object):
         """
         Acquire the src, bring it to the path 
         """
-        raise NotImplementedError()
+        pass
     
     def unpack(self, package, filename):
         pass
     
     def start(self):
         try:
+            self.logger.info("deploying service...")
             self.service.status = "deploying"
             self.prepare()
             self.acquire()
+            self.service.msg('deploy')
             self.service.status = "ready"
             self.service.start()
         except Exception, e:
-            logging.exception('Deployment failed.')
+            self.logger.exception('deployment failed.')
             self.cancel()
+            self.service.msg('deploy_failed')
             self.service.failed = True
             self.service.status = "deployment failed"
 
@@ -73,7 +74,6 @@ class DeploymentBase(object):
         pass
 
 Deployment = DeploymentBase
-
 
 class DeploymentNotFound(Exception):
     pass

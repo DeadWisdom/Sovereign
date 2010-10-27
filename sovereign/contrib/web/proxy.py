@@ -20,26 +20,28 @@ filtered_headers = (
 )
 
 
-def proxy(address=('', 0)):
+class Proxy(object):
     """ 
-        Returns HTTP proxying WSGI application that proxies the exact request
-        given in the environment. All controls are passed through the 
-        environment.
+        Proxying WSGI application that proxies the exact request given in the 
+        environment. All controls are passed through the environment.
 
         This connects to the server given in SERVER_NAME:SERVER_PORT, and
         sends the Host header in HTTP_HOST -- they do not have to match.
 
         Does not add X-Forwarded-For or other standard headers
     """
-    def application(environ, start_response):
-        if isinstance(address, basestring):
-            parsed_address = urlparse(address)
+    def __init__(self, address=('', 0)):
+        self.address = address
+    
+    def __call__(self, environ, start_response):
+        if isinstance(self.address, basestring):
+            parsed_address = urlparse(self.address)
             host = parsed_address.hostname
             port = parsed_address.port
-            ConClass = _get_conn_class(environ, parsed_address.scheme)
+            ConClass = self._get_conn_class(environ, parsed_address.scheme)
             conn = ConnClass(parsed_address.hostname, parsed_address.port)
         else:
-            conn = _get_conn_class(environ)(*address)
+            conn = self._get_conn_class(environ)(*self.address)
 
         headers = {}
         for key, value in environ.items():
@@ -70,7 +72,7 @@ def proxy(address=('', 0)):
                 return http.BadGateway()(environ, start_response)
             raise
         res = conn.getresponse()
-        headers_out = _parse_headers(res.msg)
+        headers_out = self._parse_headers(res.msg)
         status = '%s %s' % (res.status, res.reason)
         start_response(status, headers_out)
         length = res.getheader('content-length')
@@ -80,43 +82,39 @@ def proxy(address=('', 0)):
             body = [ res.read() ]
         conn.close()
         return body
-        
-    return application
 
-
-def _get_conn_class(environ, scheme=''):
-    if scheme == '':
-        scheme = environ['wsgi.url_scheme']
-    if scheme == 'http':
-        return httplib.HTTPConnection
-    elif scheme == 'https':
-        return httplib.HTTPSConnection
-    else:
-        raise ValueError("Unknown scheme: %r" % scheme)
-
-
-def _parse_headers(message):
-    """
-    Turn a Message object into a list of WSGI-style headers.
-    """
-    headers_out = []
-    for full_header in message.headers:
-        if not full_header:
-            # Shouldn't happen, but we'll just ignore
-            continue
-        if full_header[0].isspace():
-            # Continuation line, add to the last header
-            if not headers_out:
-                raise ValueError("First header starts with a space (%r)" % full_header)
-            last_header, last_value = headers_out.pop()
-            value = last_value + ', ' + full_header.strip()
-            headers_out.append((last_header, value))
-            continue
-        try:
-            header, value = full_header.split(':', 1)
-        except:
-            raise ValueError("Invalid header: %r" % full_header)
-        value = value.strip()
-        if header.lower() not in filtered_headers:
-            headers_out.append((header, value))
-    return headers_out
+    def _get_conn_class(self, environ, scheme=''):
+        if scheme == '':
+            scheme = environ['wsgi.url_scheme']
+        if scheme == 'http':
+            return httplib.HTTPConnection
+        elif scheme == 'https':
+            return httplib.HTTPSConnection
+        else:
+            raise ValueError("Unknown scheme: %r" % scheme)
+    
+    def _parse_headers(self, message):
+        """
+        Turn a Message object into a list of WSGI-style headers.
+        """
+        headers_out = []
+        for full_header in message.headers:
+            if not full_header:
+                # Shouldn't happen, but we'll just ignore
+                continue
+            if full_header[0].isspace():
+                # Continuation line, add to the last header
+                if not headers_out:
+                    raise ValueError("First header starts with a space (%r)" % full_header)
+                last_header, last_value = headers_out.pop()
+                value = last_value + ', ' + full_header.strip()
+                headers_out.append((last_header, value))
+                continue
+            try:
+                header, value = full_header.split(':', 1)
+            except:
+                raise ValueError("Invalid header: %r" % full_header)
+            value = value.strip()
+            if header.lower() not in filtered_headers:
+                headers_out.append((header, value))
+        return headers_out

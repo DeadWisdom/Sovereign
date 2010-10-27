@@ -85,6 +85,13 @@ class RemoteNode(Node):
         except RemoteError, e:
             if e.status == 404:
                 return None
+    
+    def get_service_log(self, id):
+        try:
+            return self.get('/services/%s/log' % id)
+        except RemoteError, e:
+            if e.status == 404:
+                return None
         
     def delete_service(self, id):
         return self.delete('/services/%s' % id)

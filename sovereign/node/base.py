@@ -115,6 +115,13 @@ class Node(object):
         """
         raise NotImplementedError()
     
+    def get_service_log(self, id):
+        """
+            Returns the log for the service with the given *id* if it exists,
+            otherwise None.
+        """
+        raise NotImplementedError()
+    
     def msg_service(self, id, message, **kwargs):
         """
             Sends a *message* to the service *id*, with the given *kwargs*.

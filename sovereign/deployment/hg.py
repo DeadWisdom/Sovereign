@@ -15,9 +15,6 @@ class Deployment(DeploymentBase):
                 return False
             return True
         else:
-            #self.remove()
-            import logging
-            logging.info("Running command.")
             out, err = self.command("hg", "clone", self.src, path)
             if err:
                 raise DeploymentFailed(err)

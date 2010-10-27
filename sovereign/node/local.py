@@ -11,7 +11,7 @@ from eventlet.green import socket
 from eventlet.greenpool import GreenPool
 
 from sovereign import http
-from sovereign.util import FileLikeLogger, shell
+from sovereign.util import FileLikeLogger, shell, random_str
 from sovereign.service import get_service_class, ServiceIdCollision
 from sovereign.dispatcher import Dispatcher
 from sovereign.deployment import Deployment
@@ -20,7 +20,7 @@ from base import Node
 
 
 class LocalNode(Node):
-    def __init__(self, path=None, id=None, master=None, settings=None):
+    def __init__(self, path=None, id=None, master=None, settings=None, log_level=logging.WARNING):
         self.path = os.path.abspath(path or '.')
         
         if id is None:
@@ -32,6 +32,8 @@ class LocalNode(Node):
             os.makedirs(path)
         
         print "Sovereign node (%s) created at %s" % (self.id, self.path)
+        
+        self.log_level = log_level
         
         self.address = None
         self._socket = None
@@ -63,8 +65,6 @@ class LocalNode(Node):
         if self._socket:
             self.close()
         
-        self.start()
-        
         try:
             self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -72,9 +72,11 @@ class LocalNode(Node):
             self._socket.listen(500)
         
             self.address = self._socket.getsockname()
-        
+            
+            self.start()
+            
             print "listening on http://%s:%s" % self.address
-            wsgi.server(self._socket, self, log=FileLikeLogger())
+            wsgi.server(self._socket, self, log=FileLikeLogger(logging))
             self._socket = None
         except Exception:
             logging.exception("Error binding address.")
@@ -89,7 +91,7 @@ class LocalNode(Node):
     def start(self):
         for service in self.services:
             if not service.started and not service.disabled:
-                service.start()
+                service.deploy()
         
     def stop(self):
         for service in self.services:
@@ -114,12 +116,16 @@ class LocalNode(Node):
         return response(env, start_response)
     
     def route(self, env):
-        for service in self.services:
-            response = service.route(env)
-            if response is not None:
-                return response
+        try:
+            for service in self.services:
+                response = service.route(env)
+                if response is not None:
+                    return response
         
-        return self.dispatcher.route(env)
+            return self.dispatcher.route(env)
+        except:
+            logging.exception("Error handling request.")
+            raise
     
     def load_settings(self, settings=None):
         path = os.path.join(self.path, 'settings.json')
@@ -133,12 +139,24 @@ class LocalNode(Node):
         elif not settings:
             settings = json.load(open(path, 'r'))
         
+        self.secure = settings.get('secure', random_str())
+        
         for service in settings.get('services', ()):
-            self.create_service(service['id'], service)
+            self.create_service(service.get('id', 'type'), service, deploy=False)
     
     def save_settings(self):
         path = os.path.join(self.path, 'settings.json')
-        json.dump(self.info(), open(path, 'w'))
+        
+        settings = {
+            'id': self.id,
+            'secure': self.secure,
+            'address': self.address,
+            'services': [service.get_settings_for_save() for service in self.services]
+        }
+        if self.master is not self:
+            settings['master'] = self.master.address
+        
+        json.dump(settings, open(path, 'w'))
     
     ### Implementations ###
     def sys_install(self, packages):
@@ -173,7 +191,7 @@ class LocalNode(Node):
         stdout = []
         stderr = []
         for cmd in cmds:
-            o, e = shell(self.path, cmd)
+            o, e, returncode = shell(self.path, cmd)
             stdout.append(o)
             stderr.append(e)
         return stdout, stderr
@@ -183,13 +201,13 @@ class LocalNode(Node):
             'id': self.id,
             'address': self.address,
             'services': [service.info() for service in self.services],
-            'vassals': [node.info() for node in self.vassals]
+            'vassals': [node.info() for node in self.vassals],
         }
         if self.master is not self:
             info['master'] = self.master.address
         return info
     
-    def create_service(self, id, settings):
+    def create_service(self, id, settings, deploy=True):
         if self._get_service(id):
             raise ServiceIdCollision("Cannot create another service with the same id: %r" % id)
         
@@ -198,14 +216,22 @@ class LocalNode(Node):
         self.services.append(service)
         self._service_map[id] = service
         
-        if not service.settings.get('disabled', False):
-            service.deploy()
+        if deploy:
+            if not service.settings.get('disabled', False):
+                service.deploy()
+        
         self.save_settings()
         return service.info()
         
     def modify_service(self, id, settings):
-        self.delete_service(id)
-        return self.create_service(id, settings)
+        service = self._get_service(id)
+        if not service:
+            return self.create_service(id, settings)
+        else:
+            service.stop()
+            service.update_settings(settings)
+            service.deploy()
+            return service.info()
     
     def delete_service(self, id):
         service = self._get_service(id)
@@ -229,6 +255,16 @@ class LocalNode(Node):
     
     def _get_service(self, id):
         return self._service_map.get(id, None)
+    
+    def get_service_log(self, id, since=None):
+        service = self._get_service(id)
+        if service:
+            if since:
+                return tuple( reversed(tuple(service._log.get_lines_since(since))) )
+            else:
+                return service._log.get_lines()
+        else:
+            return None
     
     def create_local_node(self, id=None, path=None, settings=None):
         if self.get_node(id):

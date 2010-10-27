@@ -6,4 +6,4 @@ settings_local.py
 sqlite.db
 _cache
 assets
-sandbox
+.sandbox

@@ -1,21 +1,30 @@
 import logging
 
-from base import Service, Setting
+from base import Service
 from process import ProcessService
 from python import PythonService
 
-def get_service_class(import_path):
+from settings import *
+
+def get_service_class(sig):
+    from sovereign import contrib
+    
     try:
-        module, cls = import_path.rsplit('.', 1)
+        return Service.classes[sig]
+    except:
+        pass
+    
+    try:
+        module, cls = sig.rsplit('.', 1)
         cls = cls.encode()
     except:
-        logging.error("Service class name is not formatted correctly: %r" % import_path)
+        logging.error("Service class name is not formatted correctly: %r" % sig)
         return None
         
     try:
         mod = __import__(module, {}, {}, [cls])
     except:
-        logging.exception("Unable to import the service class: %r" % import_path)
+        logging.exception("Unable to import the service class: %r" % sig)
         raise
     
     return getattr(mod, cls)

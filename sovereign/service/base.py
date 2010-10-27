@@ -1,51 +1,127 @@
-from sovereign.deployment import Deployment
 import os, shutil, eventlet
+import logging
+import logging.handlers
+
+from sovereign.deployment import Deployment
+from sovereign.util import RingHandler, shell
+from settings import IdField, BoolField, NoteField, StringList
+
+logging.MESSAGE = logging.INFO - 1
+logging.addLevelName(logging.MESSAGE, 'MESSAGE')
 
 
-class Setting(object):
-    def __init__(self, key=None, default=None, type=None, help=None):
-        self.key = key
-        self.default = default
-        self.help = help
-        self.type = type
+Service = None
+
+class MetaService(type):
+    def __new__(cls, name, bases, attrs):
+        order = []
+        settings = {}
+        
+        groups = [base.settings for base in bases if hasattr(base, 'settings')]
+        groups.append( attrs.get('settings', ()) )
+        
+        for group in groups:
+            for s in group:
+                if s.key not in settings:
+                    order.append(s.key)
+                settings[s.key] = s
+        
+        attrs['settings'] = [settings[key] for key in order]
+        attrs['default_settings'] = dict((s.key, s.default) for s in attrs['settings'])
+        
+        new = super(MetaService, cls).__new__(cls, name, bases, attrs)
+        
+        if 'name' in attrs:
+            Service.classes[attrs['name']] = new
+        
+        return new
 
 
 class Service(object):
+    __metaclass__ = MetaService
+
+    classes = {}
     settings = [
-        Setting('id', None, str),
-        Setting('disabled', False, bool),
+        IdField('id', None),
+        NoteField('description', ''),
+        BoolField('disabled', False),
+        StringList('deploy', [], "Commands to execute at the end of deployment."),
     ]
     
     def __init__(self, node=None, id=None, settings=None):
         self.id = id
         self.node = node
         self._deployment = None
+        self._last_returncode = None
         
         self.path = os.path.join(node.path, 'services', id)
         if not os.path.exists(self.path):
             os.makedirs(self.path)
+            
+        self._log_path = os.path.join(node.path, 'logs', id)
+        if not os.path.exists(self._log_path):
+            os.makedirs(self._log_path)
+        
+        self.create_logger(self.node.log_level)
         
         self.started = False
         self.failed = False
         
-        self.settings = dict((s.key, s.default) for s in self.settings)
-        if (settings):
-            self.settings.update(settings)
-        
-        self.settings['id'] = self.id
-        self.settings['path'] = self.path
+        self.__given_settings = settings  # Given above, these are saved
+        self.__repo_settings = {}         # In the repo's service.json
+        self.update_settings(settings)
         
         self.status = "ready"
         if self.settings['disabled']:
             self.status = "disabled"
+            
+        self._thread = None           # Primary thread
+        self._ticker = None           # Ticker thread
         
         self.init()
+    
+    def update_settings(self, given=None, repo=None):
+        self.settings = {}
+        
+        self.__given_settings = given or self.__given_settings
+        self.__repo_settings = repo or self.__repo_settings
+        
+        self.settings.update(self.default_settings)
+        self.settings.update(self.__repo_settings)
+        self.settings.update(self.__given_settings)
+        
+        ### Always enforced ###
+        self.settings['path'] = self.path   
+        self.settings['id'] = self.id
+        self.__given_settings['id'] = self.id
+        
+        return self.settings
+        
+    def get_settings_for_save(self):
+        return self.__given_settings
+    
+    def command(self, *args, **kw):
+        self.logger.info("> " + " ".join(args))
+        out, err, returncode = shell(self.path, " ".join(args))
+        
+        if err:
+            self.logger.error(err)
+            
+        if out:
+            if not kw.get('suppress_out', False):
+                self.logger.info(out)
+        
+        self._last_returncode = returncode
+        
+        return out, err
     
     def delete(self):
         self.stop()
         
         if os.path.exists(self.path):
             shutil.rmtree(self.path)
+        
+        self.logger.info("service deleted.")
     
     @property
     def disabled(self):
@@ -65,33 +141,59 @@ class Service(object):
         return info
     
     def start(self):
+        if (self.started): return
+        self.failed = False
+        self.logger.info("starting service...")
         self.started = True
         self.settings['disabled'] = False
+        self.msg('start')
+        self._ticker = self.node.spawn_thread( self._tick )
     
     def stop(self):
         if self._deployment:
             self._deployment.cancel()
+        if (self._ticker):
+            self._ticker.kill()
+            self._ticker = None
+        if (self._thread):
+            self._thread.kill()
+            self._thread = None
+        self.msg('stop')
         self.started = False
+        self.logger.info("service stopped.")
     
     def deploy(self):
         """
         If I have a src, go and get that.
         """
+        
         src = self.settings.get('src', None)
         
         if src is not None:
             typ, _, src = src.partition(":")
             self._deployment = Deployment.get_deployment(typ)(self, src)
-            self._thread = self.node.spawn_thread( self._deployment.start )
-            eventlet.sleep(0)
         else:
-            self._thread = self.node.spawn_thread( self.start )
-            eventlet.sleep(0)
+            self._deployment = Deployment(self, None)
+        
+        self._thread = self.node.spawn_thread( self._deployment.start )
+        eventlet.sleep(0)
     
     def disable(self):
         self.stop()
         self.settings['disabled'] = True
         self.status = "disabled"
+        self.logger.info("service disabled.")
+    
+    def enable(self):
+        self.settings['disabled'] = False
+        self.status = "enabled"
+        self.logger.info("service enabled.")
+        self.deploy()
+    
+    def _tick(self):
+        while self.started and not self.failed:
+            self.tick()
+            eventlet.sleep(.1)
     
     def tick(self):
         """
@@ -106,10 +208,71 @@ class Service(object):
         """
         return None
     
+    def redeploy_msg(self):
+        self.node.modify_service(self.id, {})
+    
+    def start_msg(self):
+        pass
+    
+    def stop_msg(self):
+        pass
+    
+    def enable_msg(self):
+        self.enable()
+    
+    def disable_msg(self):
+        self.disable()
+    
+    def deploy_msg(self):
+        for cmd in self.settings['deploy']:
+            cmd = cmd.strip()
+            if not cmd or cmd.startswith('#'): continue
+            self.command(cmd)
+            if self._last_returncode != 0:
+                raise RuntimeError("Error in deployment script.")
+    
+    def deploy_failed_msg(self):
+        pass
+    
     def msg(self, msg, **kwargs):
         key = '%s_msg' % msg
         func = getattr(self, key, None)
         if (func):
+            self.logger.log(logging.MESSAGE, msg)
             return func(**kwargs)
         raise NameError("No message named %r." % msg)
     
+    def create_logger(self, verbosity=logging.DEBUG ):
+        if self.id in logging.Logger.manager.loggerDict:
+            self.logger = logging.getLogger(self.id)
+            self._log = self.logger.ring
+            return self.logger
+        
+        path = os.path.join(self._log_path, 'log.txt')
+        
+        file_handler = logging.handlers.RotatingFileHandler(path, maxBytes=2**24, backupCount=5)
+        file_handler.setLevel(logging.INFO)
+        file_handler.setFormatter(
+            logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+        )
+        
+        stream_handler = logging.StreamHandler()
+        stream_handler.setLevel(verbosity)
+        stream_handler.setFormatter(
+            logging.Formatter("%(levelname)s - %(name)s - %(message)s")
+        )
+        
+        ring_handler = self._log = RingHandler()
+        ring_handler.setLevel(logging.MESSAGE)
+        ring_handler.setFormatter(
+            logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+        )
+        
+        self.logger = logging.getLogger(self.id)
+        self.logger.setLevel(logging.DEBUG)
+        self.logger.addHandler(file_handler)
+        self.logger.addHandler(stream_handler)
+        self.logger.addHandler(ring_handler)
+        self.logger.ring = ring_handler
+        
+        return self.logger

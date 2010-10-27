@@ -1,10 +1,225 @@
 body {
     font-family: Helvetica, Arial, sans-serif;
     color: #666;
-    margin: 30px
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    margin: 0;
 }
 
 h1 {
     font-size: 32px;
     margin-top: 0px;
 }
+
+#header {
+    margin: 30px;
+}
+
+#stack {
+    position: absolute;
+    top: 100px; bottom: 10px;
+    left: 10px; right: 10px;
+}
+
+.right {
+    float: right !important;
+}
+
+/** Specific **/
+.service .status {
+    float: right;
+    line-height: 20px;
+    font-size: 12px;
+}
+
+.service-panel {
+    width: 600px !important;
+}
+
+.log {
+    padding: 4px;
+}
+
+.log .log-item {
+    font-family: 'Lucida Console', 'Monaco', 'Courier New', monospace;
+    margin: 0px 0px 3px;
+    font-size: 10px;
+    white-space: pre-wrap;       /* css-3 */
+    white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+    white-space: -pre-wrap;      /* Opera 4-6 */
+    white-space: -o-pre-wrap;    /* Opera 7 */
+    word-wrap: break-word;       /* Internet Explorer 5.5+ */
+}
+
+.log .log-item {
+    border: 1px solid #F0F0F0;
+    background-color: #F7F7F7;
+    padding: 2px;
+    padding-left: 22px;
+    position: relative;
+}
+
+.log .level-warning {
+    background-color: #F7F6ED;
+    border-color: #F0EEDF;
+    color: #C9B21C;
+}
+
+.log .level-error {
+    background-color: #F7EDED;
+    border-color: #F0DFDF;
+    color: #C91C1C;
+}
+
+.log .level-message {
+    display: none;
+    background-color: #EDEFF7;
+    border-color: #DFE0F0;
+    color: #391CC9;
+}
+
+.log .icon {
+    width: 16px;
+    height: 16px;
+    position: absolute;
+    left: 1px;
+    top: 1px;
+}
+
+/** Buttons **/
+.t-button {
+    display: block;
+    padding: 4px 8px 4px 5px;
+    cursor: pointer;
+    clear: both;
+    background-color: white;
+    height: 20px;
+    margin: 5px 9px;
+    -moz-box-shadow: 1px 1px 5px #ddd;
+    -webkit-box-shadow: 1px 1px 5px #ddd;
+    box-shadow: 1px 1px 5px #ddd;
+    -moz-border-radius: 4px;
+    border-radius: 4px;
+}
+
+.t-button .t-text {
+    float: left;
+    line-height: 20px;
+}
+
+.active {
+    background-color: #F0F8FF;
+}
+
+.t-icon {
+    width: 20px;
+    height: 20px;
+    background-repeat: no-repeat;
+    background-position: 0px 0px;
+    float: left;
+    margin-right: 3px;
+}
+
+.t-button .t-icon {
+/*  background: url("../img/icons/message.png") no-repeat top left;  */
+    float: left;
+}
+
+.t-button:hover {
+    background-color: #F0F8FF;
+}
+
+.t-button:hover .t-icon {
+    background-position: 0 -20px;
+}
+
+.t-disabled .t-icon {
+    background-position: 0 -40px !important;
+}
+
+.t-disabled {
+    color: #DDD !important;
+    cursor: default !important;
+    background-color: transparent !important;
+}
+
+/** Panels **/
+.t-panel .t-focuser {
+    display: none;
+}
+
+.t-panel {
+    position: absolute;
+    width: 300px;
+    top: 0px;
+    bottom: 0px;
+}
+
+.t-panel .t-content {
+    overflow: auto;
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
+    left: 0px;
+    top: 19px;
+}
+
+.t-has-top .t-content {
+    top: 52px;
+}
+
+.t-panel .t-title {
+    padding: 4px;
+    font-size: 12px;
+}
+
+.t-panel .t-bar .t-button {
+    height: 18px;
+    float: left;
+    clear: none;
+    margin: 3px 4px;
+    border: none;
+    -moz-box-shadow: none;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+    font-size: 14px;
+}
+
+.t-panel .t-bar {
+    height: 28px;
+}
+
+.t-panel .t-close {
+    position: absolute;
+    left: -18px;
+    top: 0px;
+    background-image: url("icons/close.png");
+    cursor: pointer;
+}
+
+.t-panel .t-close:hover {
+    background-position: 0px -20px;
+}
+
+/** Icons **/
+.icon-delete        { background-image: url("icons/delete.png") }
+.icon-disable       { background-image: url("icons/power-off.png") }
+.icon-enable        { background-image: url("icons/power-on.png") }
+.icon-redeploy      { background-image: url("icons/refresh.png") }
+.icon-service       { background-image: url("icons/brick.png") }
+.icon-service-admin { background-image: url("icons/brick.png") }
+.icon-task          { background-image: url("icons/script.png") }
+.icon-vassals       { background-image: url("icons/organization.png") }
+.icon-package       { background-image: url("icons/package.png") }
+.icon-user          { background-image: url("icons/user.png") }
+.icon-edit          { background-image: url("icons/wrench.png") }
+
+.icon-debug         { background-image: url("img/debug.png") }
+.icon-info          { background-image: url("img/info.png") }
+.icon-message       { background-image: url("img/message.png") }
+.icon-warning       { background-image: url("img/warning.png") }
+.icon-error         { background-image: url("img/error.png") }
+.icon-critical      { background-image: url("img/critical.png") }

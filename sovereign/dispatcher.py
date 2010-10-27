@@ -4,7 +4,7 @@ except ImportError:
     import simplejson as json
 
 from sovereign import http, util
-
+import logging
 
 ### Json Helpers ###
 def JsonResponse(data=None, headers=None, type='application/json', status="200 OK"):
@@ -58,7 +58,32 @@ class Dispatcher(object):
     
     def handleService(self, node, env):
         method = env['REQUEST_METHOD'].lower()
-        id = env['PATH_INFO'].rstrip('/')
+        rest = env['PATH_INFO'].rstrip('/').split('/')
+        args = util.query_args(env)
+        
+        if len(rest) == 1:
+            id = rest[0]
+            # continued below
+        elif len(rest) == 2:
+            id = rest[0]
+            if (method == 'get' and rest[1] == 'log'):
+                try:
+                    since = int(args.get('since', [0])[0])
+                    log = node.get_service_log(id, since=since)
+                except:
+                    logging.exception("Error")
+                    return None
+                return JsonResponse(data=log)
+            elif (method == 'post' and rest[1] == 'delete'):
+                 return JsonResponse(data=node.delete_service(id))
+            elif (method == 'post' and rest[1].startswith('~')):
+                kwargs = json.loads( env['wsgi.input'].read() )
+                response = node.msg_service(id, rest[1][1:], **kwargs)
+                return JsonResponse(data=response)
+            else:
+                return http.NotFound()
+        else:
+            return http.NotFound()
         
         if (method == 'put'):
             if (node.get_service(id)):
@@ -69,10 +94,10 @@ class Dispatcher(object):
             return JsonResponse(data=service)
         
         if (method == 'post'):
-            settings, = json.loads( env['wsgi.input'].read() )
+            settings = json.loads( env['wsgi.input'].read() )
             service = node.modify_service(id, settings)
             return JsonResponse(data=service)
-            
+        
         if (method == 'get'):
             service = node.get_service(id)
             if service:

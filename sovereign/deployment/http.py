@@ -1,4 +1,4 @@
-import os, logging
+import os
 import urlparse, rfc822
 from eventlet.green import urllib2
 from tempfile import TemporaryFile
@@ -7,7 +7,6 @@ from file import DeploymentBase, Deployment as FileDeployment
 
 class Deployment(FileDeployment):
     def acquire(self):
-        logging.info("Downloading source - http:%s", self.src)
         response = urllib2.urlopen('http:%s' % self.src)
         
         tmpfile = TemporaryFile()

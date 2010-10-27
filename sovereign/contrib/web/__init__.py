@@ -5,24 +5,24 @@ from eventlet.green import socket
 from eventlet import wsgi
 
 from sovereign import http, service, template, util, static
-from sovereign.util import FileLikeLogger
+from sovereign.util import FileLikeLogger, eat_path_info
 
-from proxy import proxy
+from proxy import Proxy
+from static import Static
+from fastcgi import FastCGI
 
 
-class Service(service.Service):
-    settings = service.Service.settings + [
-        service.Setting('address', ('0.0.0.0', 8000), tuple),
-        service.Setting('motd', None, str),
+class WebService(service.Service):
+    name = "web"
+    
+    settings = [
+        service.AddressField('address', ('0.0.0.0', 8000)),
+        service.NoteField('motd', None),
     ]
     
     def init(self):
-        self._thread = None
         self._socket = None
-        self._routes = {}
         self.address = None
-        
-        self.status = "starting"
     
     def serve(self, address):
         """
@@ -41,7 +41,7 @@ class Service(service.Service):
         
             print "Webserver listening on http://%s:%s" % self.address
             self.status = "ready"
-            wsgi.server(self._socket, self, log=FileLikeLogger())
+            wsgi.server(self._socket, self, log=FileLikeLogger(self.logger))
             self._socket = None
         except Exception:
             self.status = "failed"
@@ -61,35 +61,47 @@ class Service(service.Service):
         self.address = None
     
     def start(self):
-        super(Service, self).start()
+        super(WebService, self).start()
         self.serve(self.settings['address'])
         
     def stop(self):
-        super(Service, self).stop()
-        if (self._thread):
-            self._thread.kill()
-            self._thread = None
+        super(WebService, self).stop()
         self.close()
         self.status = "stopped"
     
+    def service_route(self, service, env, start_response):
+        if hasattr(service, 'msg_route'):
+            response = service.msg('msg_route', env, start_response)
+            if response:
+                return response
+        
+        static = service.settings.get('web.static')
+        if static:
+            for k, v in static.items():
+                if env['PATH_INFO'].startswith(k):
+                    app = Static(os.path.join(service.path, v))
+                    eat_path_info(env, k)
+                    return app(env, start_response)
+        if service.settings.get('web.fastcgi'):
+            return FastCGI(service.address)
+        return Proxy(service.address)(env, start_response)
+    
     def __call__(self, env, start_response):
         start_response('200 OK', [('Content-Type', 'text/plain')])
-        for app in self.get_routed_apps(env):
-            response = app(env, start_response)
-            if response: break
+        host_request, _, _ = env.get('HTTP_HOST').partition(":")
+        for service in self.node.services:
+            if not service.started or service.failed: continue
+            hosts = service.settings.get('web.host')
+            if not hosts: continue
+            if isinstance(hosts, basestring):
+                hosts = [hosts]
+            for host in hosts:
+                if host == '*' or host == host_request:
+                    response = self.service_route(service, env, start_response)
+                    if response: return response
+        
+        if (self.settings['motd'] and env['PATH_INFO'] == '/'):
+            return http.BasicResponse("Message of the Day", self.settings['motd'])(env, start_response)
         else:
-            if (self.settings['motd'] and env['PATH_INFO'] == '/'):
-                response = http.BasicResponse("Message of the Day", self.settings['motd'])(env, start_response)
-            else:
-                response = http.NotFound()(env, start_response)
-        return response
+            return http.NotFound()(env, start_response)
     
-    def get_routed_apps(self, env):
-        hostname, _, _ = env.get('HTTP_HOST').partition(":")
-        return tuple(self._routes.get(hostname, ())) + tuple(self._routes.get('*', ()))
-    
-    def set_route(self, host, app):
-        self._routes.setdefault(host, []).append(app)
-    
-    def proxy_msg(self, host='*', address=None):
-        self.set_route(host, proxy(address))

@@ -9,18 +9,25 @@
         
         <script src="/media/jquery.js"      type="text/javascript" charset="utf-8"></script>
         <script src="/media/tea.js"         type="text/javascript" charset="utf-8"></script>
+        <script src="/media/fields.js"      type="text/javascript" charset="utf-8"></script>
         <script src="/media/application.js" type="text/javascript" charset="utf-8"></script>
+        <script src="/media/service.js"     type="text/javascript" charset="utf-8"></script>
+        <script src="/media/node.js"        type="text/javascript" charset="utf-8"></script>
         
         <script type="text/javascript">
-            app.setup({});
+            app.setup({
+                service_types: {{service_types}}
+            });
         </script>
     </head>
     <body>
-        <div class="server">
-            sovereign
+        <div id="header">
+            <div class="server">
+                sovereign
+            </div>
+            <h1>
+                {{title}}
+            </h1>
         </div>
-        <h1>
-            {{title}}
-        </h1>
     </body>
 </html>
