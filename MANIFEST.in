@@ -1,0 +1,3 @@
+include sovereign/contrib/admin/media/*
+include sovereign/contrib/admin/media/icons/*
+include sovereign/contrib/admin/media/img/*
