@@ -50,7 +50,7 @@ class PhpService(service.ProcessService):
         
         self._fastcgi = FastCGI(self.address)
     
-    def msg_route(self, environ, start_response):
+    def msg_route(self, environ=None, start_response=None):
         if 'REQUEST_URI' not in environ:
             # PHP likes to have this variable
             request_uri = [

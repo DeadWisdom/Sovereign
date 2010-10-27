@@ -71,7 +71,7 @@ class WebService(service.Service):
     
     def service_route(self, service, env, start_response):
         if hasattr(service, 'msg_route'):
-            response = service.msg('msg_route', env, start_response)
+            response = service.msg('msg_route', environ=env, start_response=start_response)
             if response:
                 return response
         
