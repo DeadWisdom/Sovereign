@@ -19,10 +19,11 @@ def run():
     if options.verbose:
         log_level = logging.INFO
     
+    node = LocalNode(options.repository, log_level=log_level)
+    
     if (options.user):
         set_process_owner(options.user)
-    
-    node = LocalNode(options.repository, log_level=log_level)
+        
     node.serve(options.address)
 
 

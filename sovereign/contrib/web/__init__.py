@@ -16,29 +16,24 @@ class WebService(service.Service):
     name = "web"
     
     settings = [
-        service.AddressField('address', ('0.0.0.0', 8000)),
+        service.AddressField('address', ('0.0.0.0', 80)),
         service.NoteField('motd', None),
     ]
     
     def init(self):
-        self._socket = None
+        address = self.settings['address']
+        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._socket.bind(tuple(address))
+        self._socket.listen(500)
         self.address = None
     
-    def serve(self, address):
+    def serve(self):
         """
         Serves the webserver at *address* (host, port).
         """
-        if self._socket:
-            self.close()
-        
+        self.address = self._socket.getsockname()
         try:
-            self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self._socket.bind(tuple(address))
-            self._socket.listen(500)
-        
-            self.address = self._socket.getsockname()
-        
             print "Webserver listening on http://%s:%s" % self.address
             self.status = "ready"
             wsgi.server(self._socket, self, log=FileLikeLogger(self.logger))
@@ -54,15 +49,14 @@ class WebService(service.Service):
     def close(self):
         if self._socket:
             try:
-                self._socket.close()
+                self._socket.terminate()
             except:
                 logging.exception("Socket will not shutdown.")
-        self._socket = None
         self.address = None
     
     def start(self):
         super(WebService, self).start()
-        self.serve(self.settings['address'])
+        self.serve()
         
     def stop(self):
         super(WebService, self).stop()
