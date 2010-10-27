@@ -100,9 +100,9 @@ class MutableFile(object):
 
 
 __used_addresses = set()
-def find_empty_port(host='localhost', range=(10000, 20000)):
+def find_empty_port(host='localhost', ports=(10000, 20000)):
 
-    for port in range(*range):
+    for port in range(*ports):
         if (host, port) in __used_addresses:
             continue
         
