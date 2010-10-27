@@ -99,6 +99,8 @@ class MutableFile(object):
         self.mtime = -1
 
 
+from eventlet.green import socket
+
 __used_addresses = set()
 def find_empty_port(host='localhost', ports=(10000, 20000)):
 
