@@ -1,0 +1,51 @@
+
+
+Todo
+ > Baron
+    If we are root, when starting the server, we will fork, the parent will 
+    remain in root, the child will drop down to the given user:group.  When 
+    the child needs a socket, it will ask the parent for it.  This way we get
+    around the need to be root for port 80 and the like.  The Baron can also 
+    run privileged tasks and services.
+ 
+ 
+ > Users / Auth / Key
+    node.authorize(username, password)
+    node.get_user(username)
+    node.set_password(username, password)
+    
+    On index, ask for a username/password, node.authorize(), we will get the
+    <key>, which we will put in the rest of the ajax calls.
+    
+    Dispatch will check for the <key> for all calls except for the index and
+    authorize().
+    
+    All remote calls will add the <key>.
+ 
+ 
+ > Fragile
+    Services get a "fragile" setting, True by default, if deleted the 
+    directory is killed.
+ 
+ 
+ > Build Node 
+    Deploy to existing server [host, username, password]
+    Deploy to new cloud Server [service, {auth-info}]
+    
+
+ > Vassals
+    Track vassals, display them, allow services to be deployed to them.
+
+
+ > RemoteService
+    A remote service is a way to track... remote services, imagine that, with
+    a consistent interface.
+
+
+ > Tasks
+    A directory called "tasks" exists in the node repo.  Tasks are .py or .sh
+    files which can be run.
+ 
+ 
+ > Package
+    A package is a set of tasks to run and services to set up.

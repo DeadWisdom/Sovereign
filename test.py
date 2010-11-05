@@ -1,25 +1,24 @@
-import logging
+import socket
+import os
+import struct
 
-# create logger
-logger = logging.getLogger("simple_example")
-logger.setLevel(logging.DEBUG)
+sp = socket.socketpair(socket.AF_UNIX, socket.SOCK_DGRAM)
 
-# create console handler and set level to debug
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+pid = os.fork()
+if pid == 0:
+	ipc = sp[0]
+	sp[1].close()
+	print "[+] Child forked"
+	fp = ipc.recvmsg(1)[1][0][0]
+	print "[+] Child received the file descriptor, the contents:"
+	print(fp.read(10000))
+else:
+	ipc = sp[1]
+	sp[0].close()
 
-# create formatter
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+	fp = open("/etc/passwd")
 
-# add formatter to ch
-ch.setFormatter(formatter)
-
-# add ch to logger
-logger.addHandler(ch)
-
-# "application" code
-logger.debug("debug message")
-logger.info("info message")
-logger.warn("warn message")
-logger.error("error message")
-logger.critical("critical message")
+	print "[+] Parent forked child with pid", pid
+	ret = ipc.sendmsg("x", None, [(socket.SOL_SOCKET, socket.SCM_RIGHTS,
+			  struct.pack("i", fp.fileno()))], 0)
+	print "[+] Parent has sent the open file descriptor"

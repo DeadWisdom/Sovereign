@@ -57,8 +57,7 @@ def get_config():
     
     if config['socket']:
         config['socket'] = socket.fromfd( config['socket'], socket.AF_INET, socket.SOCK_STREAM )
-    
-    if not config['socket']:
+    else:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind((config['host'], config['port']))

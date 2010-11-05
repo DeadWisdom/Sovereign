@@ -20,6 +20,7 @@ setup(
     url = '',
     license = 'MIT',
     packages = find_packages(exclude=['libs', 'tests']),
+    ext_modules = [Extension("tradesocket", ["tradesocket/tradesocket.c"]],
     include_package_data=True,
     zip_safe = False,
     install_requires = [
