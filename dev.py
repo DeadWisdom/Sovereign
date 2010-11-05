@@ -1,3 +1,3 @@
-#!/usr/bin/env python
+#!env/bin/python
 import sovereign
 sovereign.run()

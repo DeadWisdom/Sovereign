@@ -20,13 +20,26 @@ def run():
     if options.verbose:
         log_level = logging.INFO
     
-    if os.geteuid() == 0:
-        baron = Baron()
-    else:
-        baron = None
+    baron = Baron()
+
+    if options.start or options.stop or options.restart:
+        pid_file = os.path.join(options.repository, "daemon.pid")
+        baron.ensure_pid_path(pid_file, options.user or "")
+        if options.restart:
+            baron.stop_daemon(pid_file)
+        
+        if options.stop:
+            baron.stop_daemon(pid_file)
+            return
+        
+        pid = baron.start_daemon(pid_file, working_dir=options.repository)
+        print "Okay!"
     
-    if (options.user):
-        set_process_owner(options.user)
+    if os.geteuid() == 0:
+        baron.fork()
+    
+    if options.user:
+        baron.set_owner(options.user)
         
     node = LocalNode(options.repository, log_level=log_level, baron=baron)
         
@@ -92,6 +105,26 @@ def get_parser():
                         help="Run as USER[:GROUP] (defaults to 'minister:minister' if run by root, or if run with sudo the sudoing user)", 
                         metavar="USER", 
                         default=default_user)
+    
+    group = parser.add_mutually_exclusive_group()
+    
+    group.add_argument("--start",
+                        dest="start",
+                        action="store_true",
+                        help="Start as a daemon.",
+                        default=False)
+    
+    group.add_argument("--restart",
+                        dest="restart",
+                        action="store_true",
+                        help="Restart the existing daemon process.",
+                        default=False)
+                        
+    group.add_argument("--stop",
+                        dest="stop",
+                        action="store_true",
+                        help="Stop the existing daemon process.",
+                        default=False)
     
     return parser
 

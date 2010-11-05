@@ -4,3 +4,4 @@ argparse
 psutil
 pip
 virtualenv
+setproctitle
