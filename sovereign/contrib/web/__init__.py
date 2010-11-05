@@ -20,18 +20,11 @@ class WebService(service.Service):
         service.NoteField('motd', None),
     ]
     
-    def init(self):
-        address = self.settings['address']
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._socket.bind(tuple(address))
-        self._socket.listen(500)
-        self.address = None
-    
     def serve(self):
         """
         Serves the webserver at *address* (host, port).
         """
+        self._socket = self.node.build_socket(self.settings['address'])
         self.address = self._socket.getsockname()
         try:
             print "Webserver listening on http://%s:%s" % self.address

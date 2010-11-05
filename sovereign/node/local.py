@@ -20,7 +20,8 @@ from base import Node
 
 
 class LocalNode(Node):
-    def __init__(self, path=None, id=None, master=None, settings=None, log_level=logging.WARNING):
+    def __init__(self, path=None, id=None, master=None, settings=None, log_level=logging.WARNING, baron=None):
+        self.baron = baron
         self.path = os.path.abspath(path or '.')
         
         if id is None:
@@ -41,7 +42,6 @@ class LocalNode(Node):
         self.services = []
         self._service_map = {}
         self._deployments = []
-        self._sockets = {}
         
         self._node_map = {id: self}
         self.master = master or self
@@ -76,12 +76,10 @@ class LocalNode(Node):
             wsgi.server(self._socket, self, log=FileLikeLogger(logging))
             self._socket = None
         except Exception:
+            raise
             logging.exception("Error binding address.")
         finally:
             self.close()
-    
-    def build_sockets(self):
-        self.privileged = self.settings['privileged']
             
     def spawn_thread(self, func, *args, **kwargs):
         thread = self._pool.spawn(func, *args, **kwargs)
@@ -127,13 +125,14 @@ class LocalNode(Node):
             logging.exception("Error handling request.")
             raise
     
-    def build_socket(self, address):
-        if address in self._sockets:
-            return self._sockets[address]
+    def build_socket(self, address, reusable=True, listen=500):
+        if (self.baron):
+            return self.baron.create_socket(address, reusable, listen)
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind(tuple(address))
-        sock.listen(500)
+        if reusable:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(address)
+        sock.listen(listen)
         return sock
     
     def load_settings(self, settings=None):
@@ -152,11 +151,6 @@ class LocalNode(Node):
         
         for service in settings.get('services', ()):
             self.create_service(service.get('id', 'type'), service, deploy=False)
-        
-        self.privileged = {}
-        for key, address in settings.get('privileged', {}).items():
-            socket = 
-            self.privileged[key]
     
     def save_settings(self):
         path = os.path.join(self.path, 'settings.json')

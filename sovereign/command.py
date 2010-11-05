@@ -8,8 +8,9 @@ import logging, logging.handlers
 logger = logging.getLogger()
 logger.addHandler(logging.handlers.BufferingHandler(0))
 
-
+from baron import Baron
 from node import LocalNode
+
 
 def run():
     parser = get_parser()
@@ -19,10 +20,15 @@ def run():
     if options.verbose:
         log_level = logging.INFO
     
-    node = LocalNode(options.repository, log_level=log_level)
+    if os.geteuid() == 0:
+        baron = Baron()
+    else:
+        baron = None
     
     if (options.user):
         set_process_owner(options.user)
+        
+    node = LocalNode(options.repository, log_level=log_level, baron=baron)
         
     node.serve(options.address)
 
