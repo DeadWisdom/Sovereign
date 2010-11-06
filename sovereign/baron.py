@@ -12,7 +12,7 @@ def create_socket(address=('', 0), reusable=True, listen=500):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     if reusable:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.bind(address)
+    sock.bind(tuple(address))
     sock.listen(listen)
     return sock
 

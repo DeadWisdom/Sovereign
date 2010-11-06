@@ -27,9 +27,12 @@ class Dispatcher(object):
     def route(self, env):
         path = env['PATH_INFO']
         
+        if not self.node.authorize(env):
+            return http.Forbidden()
+        
         if (path == '/info'):
             return self.handle_get('info', env)
-            
+        
         if (path == '/sys'):
             return self.handle_post('sys', env)
         
@@ -94,8 +97,8 @@ class Dispatcher(object):
             return JsonResponse(data=service)
         
         if (method == 'post'):
-            settings = json.loads( env['wsgi.input'].read() )
-            service = node.modify_service(id, settings)
+            args = json.loads( env['wsgi.input'].read() )
+            service = node.modify_service(id, *args)
             return JsonResponse(data=service)
         
         if (method == 'get'):

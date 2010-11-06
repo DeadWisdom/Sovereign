@@ -15,8 +15,9 @@ class RemoteError(Exception):
         super(RemoteError, self).__init__(self, "Bad status from the server: %r" % self.status)
 
 class RemoteNode(Node):
-    def __init__(self, address=('127.0.0.1', 1648), settings=None):
+    def __init__(self, address=('127.0.0.1', 1648), settings=None, key=None):
         self.address = address
+        self.key = key
         self.settings = settings or {}
     
     def get_connection(self):
@@ -24,7 +25,7 @@ class RemoteNode(Node):
         
     def post(self, url, *args):
         conn = self.get_connection()
-        conn.request("POST", url, json.dumps(args))
+        conn.request("POST", url, json.dumps(args), {'Authorization': self.key})
         response = conn.getresponse()
         if (response.status != 200):
             raise RemoteError(response)
@@ -32,7 +33,7 @@ class RemoteNode(Node):
     
     def put(self, url, *args):
         conn = self.get_connection()
-        conn.request("PUT", url, json.dumps(args))
+        conn.request("PUT", url, json.dumps(args), {'Authorization': self.key})
         response = conn.getresponse()
         if (response.status != 200):
             raise RemoteError(response)
@@ -40,7 +41,7 @@ class RemoteNode(Node):
     
     def get(self, url):
         conn = self.get_connection()
-        conn.request("GET", url)
+        conn.request("GET", url, None, {'Authorization': self.key})
         response = conn.getresponse()
         if (response.status != 200):
             raise RemoteError(response)
@@ -48,7 +49,7 @@ class RemoteNode(Node):
         
     def delete(self, url):
         conn = self.get_connection()
-        conn.request("DELETE", url)
+        conn.request("DELETE", url, None, {'Authorization': self.key})
         response = conn.getresponse()
         if (response.status != 200):
             raise RemoteError(response)

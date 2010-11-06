@@ -8,7 +8,7 @@ class TestRemote(TestNode):
     
     def setUp(self):
         super(TestRemote, self).setUp()
-        self.node = RemoteNode(address=self._local.address)
+        self.node = RemoteNode(address=self._local.address, key=self._local.key)
 
 del TestNode
 

@@ -19,6 +19,9 @@ def MovedPermanently(uri, headers=[]):
 def NotModified(headers=[]):
     return Response(status='304 Not Modified', headers=headers)
 
+def Forbidden(content=render("403 Forbidden")):
+    return Response(status='403 Forbidden', content=content)
+
 def NotFound(content=render("404 Not Found")):
     return Response(status='404 Not Found', content=content)
 

@@ -42,6 +42,7 @@ class LocalNode(Node):
         self.services = []
         self._service_map = {}
         self._deployments = []
+        self._keys = set()      # A set of keys allowed to edit things.
         
         self._node_map = {id: self}
         self.master = master or self
@@ -113,6 +114,21 @@ class LocalNode(Node):
             response = http.NotFound()
         return response(env, start_response)
     
+    def authorize(self, env):
+        auth = env.get('HTTP_AUTHORIZATION', None)
+        if not auth:
+            return False
+        return auth in self._keys
+    
+    def add_key(self, key=None):
+        if key is None:
+            key = random_str()
+        self._keys.add(key)
+        return key
+    
+    def rem_key(self, key):
+        self._keys.remove(key)
+    
     def route(self, env):
         try:
             for service in self.services:
@@ -131,7 +147,7 @@ class LocalNode(Node):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if reusable:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind(address)
+        sock.bind(tuple(address))
         sock.listen(listen)
         return sock
     
@@ -147,7 +163,8 @@ class LocalNode(Node):
         elif not settings:
             settings = json.load(open(path, 'r'))
         
-        self.secure = settings.get('secure', random_str())
+        self.key = settings.get('key', random_str())
+        self._keys = set([self.key])
         
         for service in settings.get('services', ()):
             self.create_service(service.get('id', 'type'), service, deploy=False)
@@ -157,7 +174,7 @@ class LocalNode(Node):
         
         settings = {
             'id': self.id,
-            'secure': self.secure,
+            'key': self.key,
             'address': self.address,
             'services': [service.get_settings_for_save() for service in self.services]
         }
