@@ -204,6 +204,65 @@ h1 {
     background-position: 0px -20px;
 }
 
+.t-scrim {
+    position: fixed;
+    left: 0; right: 0;
+    top: 0; bottom: 0;
+    background-color: #FFF;
+}
+
+.t-dialog {
+    background-color: #F0F0F0;
+    border-radius: 4px;
+    -moz-border-radius: 4px;
+    bottom: auto;
+       -moz-box-shadow: 1px 1px 4px #888;
+    -webkit-box-shadow: 1px 1px 4px #888;
+            box-shadow: 1px 1px 4px #888;
+}
+
+.t-dialog .t-content {
+    position: static;
+    overflow: visible;
+    padding: 8px 5px 10px;
+}
+
+.t-dialog .t-title {
+    padding: 6px 6px 0px;
+    line-height: 12px;
+    text-shadow: #FFF 1px 1px 1px;
+}
+
+.t-dialog .t-field .t-empty {
+    color: #AAA;
+}
+
+.t-dialog .fill input {
+    width: 284px;
+    margin-right: 4px;
+}
+
+.t-dialog .t-button {
+    margin: 6px 0px 6px;
+    height: 16px;
+    padding: 2px 7px 2px 2px;
+    border: 1px solid #ccc;
+    border-left: 1px solid #ddd;
+    border-top: 1px solid #ddd;
+    -moz-box-shadow: none;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+}
+
+.t-dialog .t-button .t-text {
+    font-size: 12px;
+    line-height: 17px;
+}
+
+.t-dialog .t-button .t-icon {
+    margin-top: -2px;
+}
+
 /** Icons **/
 .icon-delete        { background-image: url("icons/delete.png") }
 .icon-disable       { background-image: url("icons/power-off.png") }

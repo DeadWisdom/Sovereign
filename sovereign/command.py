@@ -42,8 +42,8 @@ def run():
         baron.set_owner(options.user)
         
     node = LocalNode(options.repository, log_level=log_level, baron=baron)
-        
-    node.serve(options.address)
+    
+    node.serve()
 
 
 ### Support ###
@@ -92,7 +92,7 @@ def get_parser():
                         type=socket,
                         help="Listen on the given ADDRESS, defaults to '0.0.0.0:1648'.",
                         metavar="ADDRESS",
-                        default='0.0.0.0:1648')
+                        default=None)
                         
     parser.add_argument('-v', '--verbose',
                         dest="verbose",

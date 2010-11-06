@@ -1,5 +1,6 @@
-import os
+import os, time
 from sovereign import http, service, template, util, static
+from eventlet.wsgi import format_date_time
 
 MEDIA_PATH = os.path.abspath(
     os.path.join( os.path.dirname(__file__), 'media' )
@@ -20,6 +21,7 @@ class Service(service.Service):
             return self._media
     
     def index(self, env):
+        self.logger.info("ACCESS - %s - %s" % ( env['REMOTE_ADDR'], log_date_time_string() )) 
         content = template.simple_template(self._index.read(), {
             'url': env['PATH_INFO'],
             'title': 'Administration',
@@ -43,3 +45,16 @@ class Service(service.Service):
             'default': field.get_simple(field.default),
             'help': field.help
         }
+
+
+### Utilities ###
+monthname = [None,
+             'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+             'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+             
+def log_date_time_string():
+    """Return the current time formatted for logging."""
+    now = time.time()
+    year, month, day, hh, mm, ss, x, y, z = time.localtime(now)
+    s = "%02d/%3s/%04d %02d:%02d:%02d" % (day, monthname[month], year, hh, mm, ss)
+    return s

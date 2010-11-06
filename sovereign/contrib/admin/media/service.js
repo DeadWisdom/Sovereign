@@ -1,6 +1,6 @@
 ServiceBase = Tea.Class({
     load : function() {
-        $.ajax({
+        this.node.ajax({
             url: '/services/' + this.id,
             success: Service
         });
@@ -25,12 +25,12 @@ ServiceBase = Tea.Class({
     },
     updateLog : function() {
         if (this._since) {
-            $.ajax({
+            this.node.ajax({
                 url: '/services/' + this.id + '/log?since=' + this._since,
                 success : Tea.method(this.onUpdateLog, this)
             });
         } else {
-            $.ajax({
+            this.node.ajax({
                 url: '/services/' + this.id + '/log',
                 success : Tea.method(this.onUpdateLog, this)
             });
@@ -48,7 +48,7 @@ ServiceBase = Tea.Class({
         this.trigger('log', [log]);
     },
     msg : function(options) {
-        app.post({
+        this.node.post({
             url: '/services/' + this.id + '/~' + options.msg,
             data: options.args || {},
             success: Tea.method(options.success || jQuery.noop, options.context || this)

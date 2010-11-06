@@ -60,7 +60,7 @@ class LocalNode(Node):
         
         self.load_settings(settings=settings)
     
-    def serve(self, address=("127.0.0.1", 1648)):
+    def serve(self, address=None):
         """
             Serves the rest client at *address*.
         """
@@ -68,7 +68,7 @@ class LocalNode(Node):
             self.close()
         
         try:
-            self._socket = self.build_socket(address)
+            self._socket = self.build_socket(address or self.address)
             self.address = self._socket.getsockname()
             
             self.start()
@@ -165,6 +165,10 @@ class LocalNode(Node):
         
         self.key = settings.get('key', random_str())
         self._keys = set([self.key])
+        
+        self.address = settings.get('address', ('0.0.0.0', 1648))
+        
+        print "Key:", self.key
         
         for service in settings.get('services', ()):
             self.create_service(service.get('id', 'type'), service, deploy=False)

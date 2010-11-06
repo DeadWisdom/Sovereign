@@ -1,6 +1,30 @@
 NodeBase = Tea.Class({
+    ajax : function(options) {
+        var node = this;
+        $.ajax(jQuery.extend(options, {
+            beforeSend : function(request, options) {
+                request.setRequestHeader("Authorization", node.key);
+            },
+            error : function(request) {
+                if (request.status == 403) {
+                    dialog = AuthenticationDialog({node: node});
+                    dialog.show();
+                }
+            }
+        }));
+    },
+    post : function(options) {
+        var opts = jQuery.extend({
+                        type: "post",
+    			        contentType: 'application/json',
+    			        processData: false,
+    			        data: null
+                    }, options);
+        opts.data = Tea.toJSON(opts.data);
+        this.ajax(opts);
+    },
     load : function(options) {
-        $.ajax(jQuery.extend({
+        this.ajax(jQuery.extend({
             url: '/info',
             success: Tea.method(this.onLoad, this)
         }, options));
@@ -22,7 +46,7 @@ NodeBase = Tea.Class({
             seen[service.id] = true;
             if (!old_services[service.id]) nw.push(service);
             return service;
-        })
+        });
         
         jQuery.each(old_services, function(id, service) {
             if (!seen[id]) service.destroy();
@@ -104,7 +128,7 @@ NodeMenu = Tea.Panel.extend({
         
         this.append({
             type: 'MenuButton',
-            text: 'users',
+            text: 'admins',
             icon: 'user',
             panel: 'UserList',
             value: this.value
