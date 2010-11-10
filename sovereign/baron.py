@@ -118,12 +118,12 @@ class Baron(object):
     
     def set_owner(self, spec):
         user, group = self.get_owner_spec(spec)
-        if user:
-            print "Changing to user: %s" % user.pw_name
-            os.setuid(user.pw_uid)
         if group:
             print "Changing to group: %s" % group.gr_name
             os.setgid(group.gr_gid)
+        if user:
+            print "Changing to user: %s" % user.pw_name
+            os.setuid(user.pw_uid)
         return user, group
     
     #def daemonize(self, working_dir, umask, stdout='/tmp/stdout', stdin=os.devnull, stderr='/tmp/stderr'):
