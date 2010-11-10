@@ -252,6 +252,8 @@ h1 {
     -moz-box-shadow: none;
     -webkit-box-shadow: none;
     box-shadow: none;
+    float: left;
+    clear: none;
 }
 
 .t-dialog .t-button .t-text {
@@ -261,6 +263,36 @@ h1 {
 
 .t-dialog .t-button .t-icon {
     margin-top: -2px;
+}
+
+.editor {
+    width: 600px !important;
+}
+
+.editor .t-content {
+    padding: 10px;
+}
+
+.editor label {
+    width: 200px;
+    display: block;
+    float: left;
+}
+
+.editor .t-field {
+    margin-bottom: 6px;
+}
+
+.editor .t-field input[type=text] {
+    width: 350px;
+    border: 1px solid #AAA;
+    padding: 4px;
+}
+
+.editor .t-field textarea {
+    width: 350px;
+    border: 1px solid #AAA;
+    padding: 4px;
 }
 
 /** Icons **/

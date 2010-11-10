@@ -1,13 +1,10 @@
 from sovereign.service import ProcessService, StringField
 
 class Service(ProcessService):
-    name = "redis"
+    name = "minecraft"
     
     settings = [
-        StringField('executable', 'src/redis-server'),
-        #Setting('src', 'git:http://github.com/antirez/redis.git', str),
-        StringField('src', 'git:/projects/redis'),
+        StringField('executable', 'java'),
+        StringField('args', ['-cp', 'minecraft-server.jar', 'com.mojang.minecraft.server.MinecraftServer']),
+        StringField('src', 'http://www.minecraft.net/minecraft-server.zip'),
     ]
-    
-    def deploy_msg(self):
-        self.command("make")

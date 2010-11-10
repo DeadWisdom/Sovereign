@@ -43,7 +43,9 @@ class Service(service.Service):
         return {
             'type': field.__class__.__name__,
             'default': field.get_simple(field.default),
-            'help': field.help
+            'help': field.help,
+            'label': field.key,
+            'name': field.key
         }
 
 

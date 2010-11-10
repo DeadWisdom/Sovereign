@@ -65,7 +65,7 @@ MenuButton = Tea.Button.extend('MenuButton', {
 
 AuthenticationDialog = Tea.Dialog.extend({
     options: {
-        placement: 'center',
+        placement: "center",
         title: 'Auth Key',
         node: null,
         items: [
@@ -89,11 +89,38 @@ AuthenticationDialog = Tea.Dialog.extend({
     },
     show : function() {
         this.__super__();
-        this.items[0].focus();
         app.stack.hide();
+        this.items[0].focus();
     },
     hide : function() {
         this.__super__();
         app.stack.source.fadeIn();
+    }
+});
+
+ConfirmDialog = Tea.Dialog.extend({
+    options: {
+        placement: 'center',
+        scrim: true,
+        title: 'Confirmation',
+        success: jQuery.noop,
+        context: null,
+        prompt: "Are you sure?",
+        items: [
+            {type: "t-element", cls: "prompt", txt: ""},
+            {type: 't-button', text: 'Ok', icon: 'enable', cls: 'right'},
+            {type: 't-button', text: 'Cancel', icon: 'disable'}
+        ]
+    },
+    init : function() {
+        this.items[0].setHTML(this.prompt);
+        this.items[1].click = this.ok;
+        this.items[1].context = this;
+        this.items[2].click = this.hide;
+        this.items[2].context = this;
+    },
+    ok : function() {
+        this.success.call(this.context);
+        this.hide();
     }
 })

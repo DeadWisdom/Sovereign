@@ -31,7 +31,7 @@ class WsgiService(service.PythonService):
     
     def start(self):
         if not self.settings['args']:
-            self.settings['args'] = [os.path.join( self.path, '__server__.py' )]
+            self.settings['args'] = ['__server__.py']
         
         self._socket = socket.socket()
         self._socket.bind( tuple(self.settings['address']) )

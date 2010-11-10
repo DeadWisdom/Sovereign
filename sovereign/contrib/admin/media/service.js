@@ -189,7 +189,7 @@ ServicePanel = Tea.Panel.extend('ServicePanel', {
         else this._scrollTop = false;
     },
     refresh : function() {
-        var button = this.skin.top.items[2];
+        var button = this.skin.top.items[3];
         if (this.value.disabled) {
             button.setText('enable');
             button.setIcon('enable');
@@ -220,9 +220,16 @@ ServicePanel = Tea.Panel.extend('ServicePanel', {
         this.value.redeploy();
     },
     del : function() {
-        this.value.del();
+        console.log("Delete");
+        dialog = ConfirmDialog({
+            prompt: "Are you sure you want to delete this service?  This cannot be undone.",
+            success: this.value.del,
+            context: this.value
+        });
+        dialog.show();
     },
     dis_or_en_able : function() {
+        console.log("toggle_enabled");
         if (this.value.disabled) {
             this.value.enable();
         } else {
@@ -230,7 +237,9 @@ ServicePanel = Tea.Panel.extend('ServicePanel', {
         }
     },
     edit : function() {
-        Tea.pushStack(ServiceEditPanel({value: this.value}), this);
+        var stack = this.findParent(Tea.Stack);
+        stack.pop(this);
+        stack.push(ServiceEditPanel({value: this.value}));
     }
 });
 
@@ -255,8 +264,10 @@ ServiceList = Tea.Panel.extend("ServiceList", {
 
 ServiceEditPanel = Tea.Panel.extend("ServiceEditPanel", {
     options : {
-        cls: 'service-edit',
-        value: null
+        closable: true,
+        cls: 'service-editor editor',
+        value: null,
+        title: "edit service"
     },
     init : function() {
         this.setValue(this.value);
@@ -268,7 +279,11 @@ ServiceEditPanel = Tea.Panel.extend("ServiceEditPanel", {
         this.__super__(v);
     },
     setFields : function(fields) {
-        var self = this;
-        console.log(fields);
+        this.empty();
+        for (var i = 0; i < fields.length; i++) {
+            var field = fields[i];
+            console.log(field);
+            console.log( this.append(field) );
+        }
     }
-})
+});
