@@ -30,7 +30,7 @@ class Deployment(DeploymentBase):
             elif filename.endswith('.tar'):
                 mode = 'r'
             else:
-                raise DeploymentFailed("Unknown file type: %r" % filename)
+                return
             
             archive = tarfile.open(fileobj=package, mode=mode)
             try:
