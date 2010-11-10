@@ -5,7 +5,7 @@
 # Distributed under the MIT license, see LICENSE.txt
 
 import os
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, Extension
 
 setup(
     name='sovereign',
