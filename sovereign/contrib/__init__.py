@@ -1,1 +1,1 @@
-import admin, redis, web, wsgi, php
+import admin, redis, web, wsgi, php, minecraft

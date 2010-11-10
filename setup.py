@@ -32,6 +32,6 @@ setup(
     ],
     entry_points = {
         'console_scripts': [
-            'sovreign-server = sovereign:run',
+            'sovreign = sovereign:run',
         ],
     })
