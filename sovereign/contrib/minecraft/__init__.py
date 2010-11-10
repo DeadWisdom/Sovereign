@@ -5,6 +5,6 @@ class Service(ProcessService):
     
     settings = [
         StringField('executable', 'java'),
-        StringField('args', ['-Xmx1024M', '-Xms1024M', 'minecraft-server.jar', 'nogui']),
+        StringField('args', ['-cp', 'minecraft-server.jar', 'com.mojang.minecraft.server.MinecraftServer']),
         StringField('src', 'http://www.minecraft.net/minecraft-server.zip'),
     ]
