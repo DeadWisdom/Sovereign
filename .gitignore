@@ -8,3 +8,6 @@ _cache
 assets
 .sandbox
 *.so
+build
+dist
+sovereign.egg-info
