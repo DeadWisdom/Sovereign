@@ -19,7 +19,6 @@ class Deployment(DeploymentBase):
         self.prepare()
             
         if filename.endswith('.zip'):
-            raise NotImplementedError("Unpacking zip files is currently not supported.")
             archive = zipfile.ZipFile(file=package)
             archive.extractall(path=path, members=self.zip_members(archive))
             archive.close()
