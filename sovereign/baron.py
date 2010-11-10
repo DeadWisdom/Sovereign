@@ -123,7 +123,7 @@ class Baron(object):
             os.setuid(user.pw_uid)
         if group:
             print "Changing to group: %s" % group.gr_name
-            os.setgid(group.gr_id)
+            os.setgid(group.gr_gid)
         return user, group
     
     #def daemonize(self, working_dir, umask, stdout='/tmp/stdout', stdin=os.devnull, stderr='/tmp/stderr'):
@@ -181,7 +181,7 @@ class Baron(object):
             else:
                 user = -1
             if group:
-                group = group.gr_id
+                group = group.gr_gid
             else:
                 group = -1
         else:
