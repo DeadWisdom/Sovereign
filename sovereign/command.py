@@ -39,7 +39,6 @@ def run():
         baron.fork()
     
     if options.user:
-        print "Setting owner...", options.user
         baron.set_owner(options.user)
         
     node = LocalNode(options.repository, log_level=log_level, baron=baron)
