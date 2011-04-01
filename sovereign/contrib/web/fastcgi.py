@@ -413,7 +413,7 @@ class FastCGI(object):
 
     _environPrefixes = ['SERVER_', 'HTTP_', 'REQUEST_', 'REMOTE_', 'PATH_',
                         'CONTENT_']
-    _environCopies = ['SCRIPT_NAME', 'QUERY_STRING', 'AUTH_TYPE']
+    _environCopies = ['SCRIPT_NAME', 'QUERY_STRING', 'AUTH_TYPE', 'SCRIPT_FILENAME']
     _environRenames = {}
 
     def _defaultFilterEnviron(self, environ):
