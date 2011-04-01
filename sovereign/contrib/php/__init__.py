@@ -80,16 +80,16 @@ class PhpService(service.ProcessService):
     def _handle(self, environ, start_response, path):
         _SERVER = environ.copy()
         
-        _SERVER['SCRIPT_NAME'] = environ['SCRIPT_NAME'] + environ['PATH_INFO'] 
-        _SERVER['SCRIPT_FILENAME'] = path    
-        _SERVER["DOCUMENT_ROOT"] = self.path
-        _SERVER["SERVER_NAME"] = environ["HTTP_HOST"]
-        
         if 'minister.php_info' in environ:
             _SERVER['PATH_INFO'] = environ['minister.php_info']
             del _SERVER['minister.php_info']
         else:
             _SERVER['PATH_INFO'] = ''
+            
+        _SERVER['SCRIPT_NAME'] = environ['SCRIPT_NAME'] + environ['PATH_INFO'] 
+        _SERVER['SCRIPT_FILENAME'] = path    
+        _SERVER["DOCUMENT_ROOT"] = self.path
+        _SERVER["SERVER_NAME"] = environ["HTTP_HOST"]
         
         if (environ['REQUEST_METHOD'] == 'POST' and not environ.get('CONTENT_TYPE')):
             _SERVER['CONTENT_TYPE'] = 'application/x-www-form-urlencoded'
