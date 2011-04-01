@@ -79,7 +79,6 @@ class PhpService(service.ProcessService):
         
     def _handle(self, environ, start_response, path):
         _SERVER = environ.copy()
-        self.logger.debug('PHP Routing Start: %r', _SERVER)
         
         _SERVER['SCRIPT_NAME'] = environ['SCRIPT_NAME'] + environ['PATH_INFO'] 
         _SERVER['SCRIPT_FILENAME'] = path    
