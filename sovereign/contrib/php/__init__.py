@@ -43,7 +43,7 @@ class PhpService(service.ProcessService):
                 args.extend(['-d', 'doc_root=%s' % self.path])
         
         self.settings['args'] = args
-        self.settings['executable'] = 'php-fpm'
+        self.settings['executable'] = 'php-cgi'
         
         super(PhpService, self).start()
         
