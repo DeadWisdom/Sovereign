@@ -38,7 +38,7 @@ class BaronServer(object):
         
         self.loop()
     
-    def die(self, sig, func=None):
+    def die(self):
         os.kill(self._childpid, SIGTERM)
         try:
             self._pipe.close()
