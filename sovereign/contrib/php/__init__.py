@@ -78,7 +78,7 @@ class PhpService(service.ProcessService):
         return self._static(environ, start_response)
         
     def _handle(self, environ, start_response, path):
-        _SERVER = environ
+        _SERVER = environ.copy()
         
         _SERVER['SCRIPT_NAME'] = environ['SCRIPT_NAME'] + environ['PATH_INFO'] 
         _SERVER['SCRIPT_FILENAME'] = path    
@@ -94,5 +94,6 @@ class PhpService(service.ProcessService):
         if (environ['REQUEST_METHOD'] == 'POST' and not environ.get('CONTENT_TYPE')):
             _SERVER['CONTENT_TYPE'] = 'application/x-www-form-urlencoded'
         
+        self.logger.debug('PHP Routing: %r', environ)
         response = self._fastcgi(_SERVER, start_response)
         return response
