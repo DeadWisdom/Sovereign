@@ -94,7 +94,5 @@ class PhpService(service.ProcessService):
         if (environ['REQUEST_METHOD'] == 'POST' and not environ.get('CONTENT_TYPE')):
             _SERVER['CONTENT_TYPE'] = 'application/x-www-form-urlencoded'
         
-        self.logger.debug("PHP Handle:", environ['REQUEST_INFO'])
         response = self._fastcgi(_SERVER, start_response)
-        self.logger.debug("PHP response: %r" % response)
         return response
