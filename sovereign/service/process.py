@@ -64,7 +64,7 @@ class ProcessService(Service):
             'SOVEREIGN_NODE_ADDRESS': "%s:%s" % self.node.address,
             'SOVEREIGN_NODE_PATH': str(self.node.path),
             'SOVEREIGN_SERVICE_PATH': str(self.path),
-            'SOVEREIGN_SERVICE_SETTINGS': json.dumps(self.settings),
+            'SOVEREIGN_SERVICE_SETTINGS': json.dumps(self.settings.flat()),
         })
         
         # Place our path in the Path:
