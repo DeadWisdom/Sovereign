@@ -18,7 +18,7 @@ def run():
     
     log_level = logging.WARNING
     if options.verbose:
-        log_level = logging.INFO
+        log_level = logging.DEBUG
     
     baron = Baron()
 
