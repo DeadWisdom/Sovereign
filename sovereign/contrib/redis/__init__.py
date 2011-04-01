@@ -5,8 +5,7 @@ class Service(ProcessService):
     
     settings = [
         StringField('executable', 'src/redis-server'),
-        #Setting('src', 'git:http://github.com/antirez/redis.git', str),
-        StringField('src', 'git:/projects/redis'),
+        StringField('src', 'git:http://github.com/antirez/redis.git'),
     ]
     
     def deploy_msg(self):

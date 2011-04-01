@@ -32,6 +32,5 @@ class TestRedis(TestCase):
             'type': 'sovereign.contrib.redis.Service',
         }
         self.node.create_service('redis', redis)
-        self.node._pool.waitall()
         self.assertFalse(self.node._get_service('redis').failed)
         self.node.delete_service('redis')

@@ -180,7 +180,7 @@ class LocalNode(Node):
             'id': self.id,
             'key': self.key,
             'address': self.address,
-            'services': [service.get_settings_for_save() for service in self.services]
+            'services': [service.settings.flat('user') for service in self.services]
         }
         if self.master is not self:
             settings['master'] = self.master.address
@@ -258,7 +258,7 @@ class LocalNode(Node):
             return self.create_service(id, settings)
         else:
             service.stop()
-            service.update_settings(settings)
+            service.settings.update(settings)
             service.deploy()
             return service.info()
     

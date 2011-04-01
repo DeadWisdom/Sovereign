@@ -35,7 +35,6 @@ class TestNode(TestCase):
             'src': 'file:tests/src'
         }
         self.node.create_service('basic', basic)
-        self.node._pool.waitall()
         self.assertFalse(self.node._get_service('basic').failed)
         self.node.delete_service('basic')
         
@@ -45,7 +44,6 @@ class TestNode(TestCase):
             'src': 'file:tests/src.tar.gz'
         }
         self.node.create_service('basic', basic)
-        self.node._pool.waitall()
         self.assertFalse(self.node._get_service('basic').failed)
         self.node.delete_service('basic')
     
@@ -55,7 +53,6 @@ class TestNode(TestCase):
             'src': 'rsync:tests/src'
         }
         self.node.create_service('basic', basic)
-        self.node._pool.waitall()
         self.assertFalse(self.node._get_service('basic').failed)
         self.node.delete_service('basic')
     
@@ -65,7 +62,6 @@ class TestNode(TestCase):
             'src': 'hg:http://bitbucket.org/DeadWisdom/jsbundle'
         }
         self.node.create_service('basic', basic)
-        self.node._pool.waitall()
         self.assertFalse(self.node._get_service('basic').failed)
         self.node.delete_service('basic')
     
@@ -75,7 +71,6 @@ class TestNode(TestCase):
             'src': 'git://github.com/DeadWisdom/Vanilla.git'
         }
         self.node.create_service('basic', basic)
-        self.node._pool.waitall()
         self.assertFalse(self.node._get_service('basic').failed)
         self.node.delete_service('basic')
     
@@ -85,7 +80,6 @@ class TestNode(TestCase):
             'src': 'svn:http://jquery-json.googlecode.com/svn/trunk/'
         }
         self.node.create_service('basic', basic)
-        self.node._pool.waitall()
         self.assertFalse(self.node._get_service('basic').failed)
         self.node.delete_service('basic')
     
@@ -95,6 +89,5 @@ class TestNode(TestCase):
             'src': 'http://github.com/DeadWisdom/Vanilla/tarball/master'
         }
         self.node.create_service('basic', basic)
-        self.node._pool.waitall()
         self.assertFalse(self.node._get_service('basic').failed)
         self.node.delete_service('basic')

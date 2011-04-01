@@ -34,7 +34,7 @@ class DeploymentBase(object):
         if os.path.exists(path):
             o = open(path, 'r')
             try:
-                self.service.update_settings(repo=json.load(o))
+                self.service.settings.update("config", json.load(o))
             except:
                 self.service.logger.exception("Unable to load service.json")
                 pass

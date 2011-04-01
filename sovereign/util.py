@@ -59,12 +59,12 @@ def shell(path, cmd):
     try:
         popen = subprocess.Popen(list(args), cwd=path, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = popen.communicate()
+        return out, err, popen.returncode
     except OSError, e:
         err = str(e)
         out = None
-    
-    return out, err, popen.returncode
 
+    return out, err, None
 
 class MutableFile(object):
     """

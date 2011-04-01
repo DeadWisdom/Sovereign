@@ -3,6 +3,7 @@ import os, sys, logging, shutil
 from unittest import TestCase
 
 import eventlet
+from eventlet.timeout import Timeout
 from sovereign.node import LocalNode
 
 
@@ -37,22 +38,14 @@ class TestNode(TestCase):
 
     def test_sys(self):
         stdout, stdin = self.node.sys(['echo true'])
+        eventlet.sleep(0)
         self.assertEqual( stdout[0].strip(), "true" )
-    
-    def test_pip_install(self):
-        stdout, stdin = self.node.pip_install(['simplejson'], env='env')
-        self.assertTrue(stdout)
-    
-    def test_pip_uninstall(self):
-        stdout, stdin = self.node.pip_uninstall(['simplejson'], env='env')
-        self.assertTrue(stdout)
     
     def test_create_node(self):
         path = os.path.join(os.path.dirname(__file__), self.paths[1])
         node = self.node.create_local_node('nodeB', path, {
             'address': ('127.0.0.1', self.ports[1]),
         })
-        print path
         self.assertTrue(os.path.exists(path))
         
     def test_info(self):

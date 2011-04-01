@@ -4,7 +4,8 @@ import logging.handlers
 
 from sovereign.deployment import Deployment
 from sovereign.util import RingHandler, shell
-from settings import IdField, BoolField, NoteField, StringList
+from settings import IdField, BoolField, NoteField, StringList, Settings, Fieldset
+
 
 logging.MESSAGE = logging.INFO - 1
 logging.addLevelName(logging.MESSAGE, 'MESSAGE')
@@ -14,31 +15,29 @@ Service = None
 
 class MetaService(type):
     def __new__(cls, name, bases, attrs):
-        order = []
-        settings = {}
-        
-        groups = [base.settings for base in bases if hasattr(base, 'settings')]
-        groups.append( attrs.get('settings', ()) )
-        
-        for group in groups:
-            for s in group:
-                if s.key not in settings:
-                    order.append(s.key)
-                settings[s.key] = s
-        
-        attrs['settings'] = [settings[key] for key in order]
-        attrs['default_settings'] = dict((s.key, s.default) for s in attrs['settings'])
+        if 'name' not in attrs:
+            raise ValueError("Service requires a 'name' attribute.")
         
         new = super(MetaService, cls).__new__(cls, name, bases, attrs)
-        
-        if 'name' in attrs:
+        if Service:
             Service.classes[attrs['name']] = new
+        else:
+            new.classes[attrs['name']] = new
+        
+        new.fields = []
+        for base in bases:
+            if hasattr(base, 'fields'):
+                new.fields.extend( base.fields )
+        
+        if 'settings' in attrs:
+            new.fields.append(Fieldset(attrs['name'], attrs['settings']))
         
         return new
 
 
 class Service(object):
     __metaclass__ = MetaService
+    name = "basic"
 
     classes = {}
     settings = [
@@ -67,9 +66,12 @@ class Service(object):
         self.started = False
         self.failed = False
         
-        self.__given_settings = settings  # Given above, these are saved
-        self.__repo_settings = {}         # In the repo's service.json
-        self.update_settings(settings)
+        user_settings = settings or {}
+        user_settings['path'], user_settings['id'] = self.path, self.id
+        
+        self.settings = Settings(["default", "config", "user"])
+        self.settings.extend(self.__class__.fields)
+        self.settings.update(user_settings, "user")
         
         self.status = "ready"
         if self.settings['disabled']:
@@ -79,26 +81,6 @@ class Service(object):
         self._ticker = None           # Ticker thread
         
         self.init()
-    
-    def update_settings(self, given=None, repo=None):
-        self.settings = {}
-        
-        self.__given_settings = given or self.__given_settings
-        self.__repo_settings = repo or self.__repo_settings
-        
-        self.settings.update(self.default_settings)
-        self.settings.update(self.__repo_settings)
-        self.settings.update(self.__given_settings)
-        
-        ### Always enforced ###
-        self.settings['path'] = self.path   
-        self.settings['id'] = self.id
-        self.__given_settings['id'] = self.id
-        
-        return self.settings
-        
-    def get_settings_for_save(self):
-        return self.__given_settings
     
     def command(self, *args, **kw):
         self.logger.info("> " + " ".join(args))
@@ -134,7 +116,7 @@ class Service(object):
         pass
     
     def info(self):
-        info = self.settings.copy()
+        info = self.settings.flat()
         info['started'] = self.started
         info['failed'] = self.failed
         info['status'] = self.status
