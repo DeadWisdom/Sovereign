@@ -23,8 +23,6 @@ class PhpService(service.ProcessService):
     ]
     
     def start(self):
-        self.logger.debug("php service starting...")
-        
         address = self.settings['address']
         args = self.settings['args']
         options = self.settings['options']
@@ -53,8 +51,6 @@ class PhpService(service.ProcessService):
         self._static.set_handler('php', self._handle)
         
         self._fastcgi = FastCGI(self.address)
-        
-        self.logger.debug("PHP service ready.")
     
     def route_msg(self, environ=None, start_response=None):
         if 'REQUEST_URI' not in environ:
@@ -66,8 +62,6 @@ class PhpService(service.ProcessService):
             if environ.get('QUERY_STRING'):
                 request_uri.extend(['?', environ['QUERY_STRING']])
             environ['REQUEST_URI'] = "".join(request_uri)
-            
-        self.logger.debug("PHP Route: %s" % (environ['REQUEST_URI']))
         
         path = environ['PATH_INFO']
         if '.php/' in path:
@@ -94,6 +88,5 @@ class PhpService(service.ProcessService):
         if (environ['REQUEST_METHOD'] == 'POST' and not environ.get('CONTENT_TYPE')):
             _SERVER['CONTENT_TYPE'] = 'application/x-www-form-urlencoded'
         
-        self.logger.debug('PHP Routing End: %r', _SERVER)
         response = self._fastcgi(_SERVER, start_response)
         return response

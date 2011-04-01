@@ -285,9 +285,6 @@ class FastCGI(object):
         else:
             params = self._lightFilterEnviron(environ)
         
-        from pprint import pprint
-        pprint(params)
-        
         # TODO: Anything not from environ that needs to be sent also?
         self._fcgiParams(sock, requestId, params)
         self._fcgiParams(sock, requestId, {})
