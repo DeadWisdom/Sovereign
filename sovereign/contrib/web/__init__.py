@@ -58,9 +58,12 @@ class WebService(service.Service):
     
     def service_route(self, service, env, start_response):
         if hasattr(service, 'msg_route'):
+            self.logger.debug("Routing to service: %s", service.id)
             response = service.msg('route', environ=env, start_response=start_response)
             if response:
                 return response
+            else:
+                self.logger.debug("Service failed to give a response: %r", service.id)
         
         static = service.settings.get('web.static')
         if static:
