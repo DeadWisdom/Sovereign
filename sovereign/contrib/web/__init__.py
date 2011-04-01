@@ -57,7 +57,7 @@ class WebService(service.Service):
         self.status = "stopped"
     
     def service_route(self, service, env, start_response):
-        if hasattr(service, 'msg_route'):
+        if hasattr(service, 'route_msg'):
             self.logger.debug("Routing to service: %s", service.id)
             response = service.msg('route', environ=env, start_response=start_response)
             if response:
