@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import os, sys, logging, shutil
+import os, sys, logging, shutil, random
 from unittest import TestCase
 
 import eventlet
@@ -8,7 +8,7 @@ from sovereign.node import LocalNode
 
 
 class TestNode(TestCase):
-    ports = [1648, 1649]
+    ports = [random.randint(1640, 5640), random.randint(1640, 5640)]
     paths = ['nodeA', 'nodeB']
     
     def setUp(self):
@@ -20,7 +20,7 @@ class TestNode(TestCase):
         self.node = self._local
         
         self._server = eventlet.spawn(self._local.serve, ('127.0.0.1', self.ports[0]))
-        eventlet.sleep(0)
+        self.node.nanny()
     
     def tearDown(self):
         self._server.kill()
@@ -57,15 +57,17 @@ class TestNode(TestCase):
             'type': 'sovereign.service.base.Service'
         }
         service = self.node.create_service('basic', basic)
-        self.assertEqual(service['path'], os.path.join(self._local.path, 'services', 'basic'))
-        self.assertTrue( os.path.exists(service['path']) )
+        self.assertEqual(service['id'], 'basic')
+        
+        path = os.path.join(self._local.path, 'basic')
+        self.assertTrue( os.path.exists(path) )
         
         self.assertEqual( service, self.node.get_service('basic') )
         
         self.node.modify_service('basic', basic)
         
         self.node.delete_service('basic')
-        self.assertFalse( os.path.exists(service['path']) )
+        self.assertFalse( os.path.exists(path) )
         self.node.delete_service('basic')
     
     def test_zzz_terminate(self):

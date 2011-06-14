@@ -16,7 +16,7 @@ class TestRedis(TestCase):
         
         self.node = LocalNode(path=path, id='test_redis')
         self._server = eventlet.spawn(self.node.serve, self.address)
-        eventlet.sleep(0)
+        self.node.nanny()
     
     def tearDown(self):
         self.node.terminate()
@@ -33,4 +33,3 @@ class TestRedis(TestCase):
         }
         self.node.create_service('redis', redis)
         self.assertFalse(self.node._get_service('redis').failed)
-        self.node.delete_service('redis')

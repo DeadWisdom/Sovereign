@@ -8,16 +8,12 @@ class Deployment(DeploymentBase):
     def acquire(self):
         path = self.service.path
         if self.has_hg(path):
-            out, err = self.command("hg", "pull", "-u", "--repository", path)
-            if err:
-                raise DeploymentFailed(err)
+            out, err, _ = self.command("hg", "pull", "-u", timeout=5)
             if out.find('no changes found') >= 0:
                 return False
             return True
         else:
-            out, err = self.command("hg", "clone", self.src, path)
-            if err:
-                raise DeploymentFailed(err)
+            out, err, _ = self.command("hg", "clone", self.src, path)
             if out.startswith('abort'):
                 raise DeploymentFailed(out)
             return True

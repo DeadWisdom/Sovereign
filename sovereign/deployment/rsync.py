@@ -9,7 +9,7 @@ class Deployment(DeploymentBase):
             src = src + '/'
         if os.path.isdir(dest):
             dest = dest + '/'
-        out, err = self.command("rsync", '-azri', src, dest, suppress_out=True)
+        out, err, _ = self.command("rsync", '-azri', src, dest, suppress=True)
         if err:
             raise DeploymentFailed(err)
         if out:

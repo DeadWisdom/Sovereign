@@ -1,26 +1,28 @@
 import bisect
 
-DEFAULT = ((),)
+DEFAULT = ((),) 
 
 class Settings(object):
-    def __init__(self, levels):
+    levels = ["user", "config", "default"]
+    
+    def __init__(self, fieldsets=()):
         self.fieldsets = []
         self.fields = {}
-        self.values = {}
-        self.levels = dict((str(x), i) for i, x in enumerate(levels))
-        self.order = tuple(range(len(levels) - 1, -1, -1))
+        self.values = [{}] * len(self.levels)
+        self.level_map = dict((str(x), i) for i, x in enumerate(self.levels))
+        self.extend(fieldsets)
 
     def __iter__(self):
         return iter(self.fieldsets)
     
     def add(self, fieldset):
-        for field in fieldset:
+        for field in tuple( fieldset.values() ):
             for other in self.fieldsets:
                 if field.key in other:
                     other.add(field)
                     fieldset.remove(field.key)
             self.fields[field.key] = field
-            self.values.setdefault(field.key, {})[0] = field.default
+            self.values[-1][field.key] = field.default
         if fieldset._keys:
             self.fieldsets.append(fieldset)
     
@@ -29,52 +31,50 @@ class Settings(object):
             self.add(fieldset)
     
     def defaults(self):
-        defaults = {}
-        for fieldset in self:
-            for k, field in fieldset.items():
-                defaults[k] = field.default
-        return defaults
+        return self.values[-1]
     
     def get(self, k, default=None, level=None):
-        values = self.values.get(k, DEFAULT)
-        if values is DEFAULT:
-            return default
         if level is not None:
-            return values.get(self.levels[level], default)
-        for level in self.order:
-            answer = values.get(level, DEFAULT)
-            if answer is not DEFAULT:
-                return answer
+            return self.values[self.level_map[level]].get(k, default)
+        for dct in self.values:
+            v = dct.get(k, DEFAULT)
+            if v is not DEFAULT:
+                return v
         return default
     
     def __getitem__(self, k):
-        answer = self.get(k, DEFAULT)
-        if answer is DEFAULT:
-            raise KeyError(k)
-        return answer
+        for dct in self.values:
+            v = dct.get(k, DEFAULT)
+            if v is not DEFAULT:
+                return v
+        raise KeyError(k)
     
     def set(self, k, v, level=None):
         if level is None:
-            level = self.order[0]
+            dct = self.values[0]
         else:
-            level = self.levels[level]
-        self.values.setdefault(k, {})[level] = v
+            dct = self.values[self.level_map[level]]
+        dct[k] = v
     
     def __setitem__(self, k, v):
         self.set(k, v)
     
     def flat(self, level=None):
         results = {}
-        for k, values in self.values.items():
-            v = self.get(k, DEFAULT, level)
-            if v is DEFAULT:
-                continue
-            results[k] = v
+        if level is None:
+            for dct in self.values:
+                results.update(dct)
+        else:
+            dct = self.values[self.level_map[level]]
+            results.update(dct)
         return results
 
-    def update(self, dct, level=None):
-        for k, v in dct.items():
-            self.set(k, v, level)
+    def update(self, o, level=None):
+        if level is None:
+            dct = self.values[0]
+        else:
+            dct = self.values[self.level_map[level]]
+        dct.update(o)
 
 
 class Fieldset(object):

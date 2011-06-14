@@ -20,7 +20,7 @@ from base import Node
 
 
 class LocalNode(Node):
-    def __init__(self, path=None, id=None, master=None, settings=None, log_level=logging.WARNING, baron=None):
+    def __init__(self, path=None, id=None, master=None, settings=None, log_level=logging.WARNING, baron=None, address=None):
         self.baron = baron
         self.path = os.path.abspath(path or '.')
         
@@ -32,12 +32,13 @@ class LocalNode(Node):
         if not os.path.exists(self.path):
             os.makedirs(path)
         
-        print "Sovereign node (%s) created at %s" % (self.id, self.path)
-        
         self.log_level = log_level
         
-        self.address = None
+        self.address = address
         self._socket = None
+        
+        self._started = False
+        self._failed = False
         
         self.services = []
         self._service_map = {}
@@ -59,6 +60,9 @@ class LocalNode(Node):
         self.dispatcher = Dispatcher(self)
         
         self.load_settings(settings=settings)
+        
+        print "Sovereign node (%s) created at %s" % (self.id, self.path)
+        print "", "- primary authentication key:", self.key
     
     def serve(self, address=None):
         """
@@ -72,15 +76,26 @@ class LocalNode(Node):
             self.address = self._socket.getsockname()
             
             self.start()
+            self._started = True
             
             print "listening on http://%s:%s" % self.address
             wsgi.server(self._socket, self, log=FileLikeLogger(logging))
             self._socket = None
         except Exception:
+            self._failed = True
             raise
             logging.exception("Error binding address.")
         finally:
             self.close()
+    
+    def nanny(self):
+        """
+        Waits for the node to start and returns True if it succeeds.
+        Usefull for testing.
+        """
+        while not self._started and not self._failed:
+            eventlet.sleep(.01)
+        return not self._failed
             
     def spawn_thread(self, func, *args, **kwargs):
         thread = self._pool.spawn(func, *args, **kwargs)
@@ -166,9 +181,8 @@ class LocalNode(Node):
         self.key = settings.get('key', random_str())
         self._keys = set([self.key])
         
-        self.address = settings.get('address', ('0.0.0.0', 1648))
-        
-        print "Key:", self.key
+        if (self.address is None):
+            self.address = settings.get('address', ('0.0.0.0', 1648))
         
         for service in settings.get('services', ()):
             self.create_service(service.get('id', 'type'), service, deploy=False)

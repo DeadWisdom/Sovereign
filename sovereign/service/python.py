@@ -28,7 +28,7 @@ class PythonService(ProcessService):
         if virtualenv:
             for req in requires:
                 cmd = 'pip -E %s install %s' % (virtualenv, req)
-                out, err = self.command(cmd)
+                out, err, _ = self.command(cmd)
         
                 if err:
                     if "mysql-python" in self.requires:

@@ -110,6 +110,8 @@ Tea.manifest = function(obj, spill_over)
         obj = spill_over;
     }
     
+    if (obj instanceof Tea.Object) return obj;
+    
     if (typeof obj == 'string') {
         obj = className || obj;
         cls = Tea.getClass(obj);
@@ -252,7 +254,7 @@ Tea.Object.prototype = {
         This is not used by the internals of Tea, so that one can use it for
         final, user generated classes.  It is called after __init__.
     **/
-    init : jQuery.noop,
+    init : function() {},
     
     /** Tea.Object.toString()
         
@@ -782,6 +784,12 @@ Tea.latent = function(milliseconds, func, context)
         timeout = setTimeout(call, milliseconds)
     }
     
+    function trip()
+    {
+        call();
+        refresh();
+    }
+    
     function cancel()
     {
         if (timeout)
@@ -795,6 +803,7 @@ Tea.latent = function(milliseconds, func, context)
         refresh();
     }
     
+    self.trip = trip;
     self.call = call;
     self.refresh = refresh;
     self.cancel = cancel;
@@ -818,19 +827,21 @@ Tea.latent = function(milliseconds, func, context)
  **/
 Tea.Element = Tea.Class('t-element', {
     options: {
-        source: '<div/>',               // Source of the element.
-        skin: 't-skin',                 // The element skin.
-        id: null,
-        html: null,
-        cls: null,
-        hidden: false,
-        appendTo: null,                 // Append the source to this element on render()
-        attrs: {},
-        style: null,
-        width: null,
-        height: null,
-        resizeMaster: false,            // this.resize() will be called with the window is resized.
-        anchor: null                    // anchor information for the layout of the parent.
+        source: '<div/>',         // source of the element
+        skin: 't-skin',           // the element skin                                        
+        id: null,                                                                                 
+        html: null,                                                                               
+        cls: null,                                                                                
+        hidden: false,                                                                            
+        appendTo: null,           // append the source to this element on render()                
+        attrs: {},                                                                                
+        style: null,                                                                              
+        width: null,                                                                              
+        height: null,                                                                             
+        resizeMaster: false,      // this.resize() will be called with the window is resized
+        anchor: null,             // anchor information for the layout of the parent      
+        behaviors: null           // a behavior is some object that has an .attach(element)
+                                  // function, called at render time     
     },
     __postinit__ : function()
     {
@@ -841,6 +852,7 @@ Tea.Element = Tea.Class('t-element', {
         this.__rendered = false;
         this.__super__(options);
         this.parent = null;
+        this.source = $(this.source);
     },
     render : function(source) {
         if (this.__rendered) return this.source;
@@ -856,6 +868,16 @@ Tea.Element = Tea.Class('t-element', {
         this.__rendered = true;
         
         this.onRender();
+        
+        var behaviors = this.behaviors;
+        var self = this;
+        if (behaviors) {
+            this.behaviors = jQuery.map(behaviors, function(b) {
+                b = Tea.manifest(b);
+                b.attach(self);
+                return b;
+            })
+        }
         
         return this.source;
     },
@@ -911,7 +933,6 @@ Tea.Element = Tea.Class('t-element', {
             }
             now = now.parent;
         }
-        console.error("Couldn't find a parent of", this, "of type", type);
         throw new Error("Cannot find owner of the requested type");
     },
     resize : function()
@@ -1000,7 +1021,6 @@ Tea.Skin = Tea.Class('t-skin', {
 Tea.Container = Tea.Element.extend('t-container', {
     options: {
         items: null,
-        fields: null,
         skin: 't-container-skin',
         layout: null
     },
@@ -1009,7 +1029,6 @@ Tea.Container = Tea.Element.extend('t-container', {
         this.__super__(options);
         var items = jQuery.makeArray(this.items);
         this.items = [];
-        this.fields = {};
         
         var container = this;
         jQuery.each(items, function(index, item) {
@@ -1029,24 +1048,27 @@ Tea.Container = Tea.Element.extend('t-container', {
         
         item.parent = this;
         
-        if (item.name)
-            this.fields[item.name] = item;
-        
         return item;
     },
     setValue : function(value)
     {
         if (value == null || value == undefined) return;
         
-        for(var key in this.fields)
-            if (value[key] != undefined)
-                this.fields[key].setValue(value[key]);
+        for(var i = 0; i < this.items.length; i++) {
+            var k = this.items[i].name;
+            if (value[k] != undefined) {
+                this.items[i].setValue(value[k]);
+            }
+        }
     },
     getValue : function()
     {   
         var gather = {};
-        for(var key in this.fields)
-            gather[key] = this.fields[key].getValue();
+        for(var i = 0; i < this.items.length; i++) {
+            var item = this.items[i];
+            if (item.name && jQuery.isFunction(item.getValue))
+                gather[item.name] = item.getValue();
+        }
         return gather;
     },
     append : function(item)
@@ -1229,6 +1251,18 @@ Tea.Panel = Tea.Container.extend('t-panel', {
         bottom: null,
         skin: 't-panel-skin'
     },
+    setTop : function(bar) {
+        if (this.isRendered())
+            this.top = bar;
+        else
+            this.skin.setBar('top', bar);
+    },
+    setBottom : function(bar) {
+        if (this.isRendered())
+            this.bottom = bar;
+        else
+            this.skin.setBar('bottom', bar);
+    },
     setTitle : function(title)
     {
         this.title = title;
@@ -1290,42 +1324,56 @@ Tea.Panel.Skin = Tea.Container.Skin.extend('t-panel-skin', {
         source.append(this.title);
         source.append(this.content);
         
-        this.setBars(element.top, element.bottom);
-        
         if (element.closable)
-            this.closer = $("<div class='t-close t-icon CloseIcon'></div>")
+            this.closer = $("<div class='t-close t-icon icon-close'></div>")
                             .appendTo(source)
                             .click(function() { element.close() });
+        
+        if (element.top)
+            this.setBar('top', element.top);
+            
+        if (element.bottom)
+            this.setBar('bottom', element.bottom);
         
         return source;
         
     },
+    setBar : function(position, bar) {
+        var element = this.element;
+        var existing = element[position];
+        if (existing instanceof Tea.Object) {
+            if (existing.isRendered())
+                existing.remove();
+            this.source.removeClass('t-has-' + position);
+        }
+        element[position] = null;
+        
+        if (!bar) return;
+        
+        if (jQuery.isArray(bar))
+            bar = {
+                type: 't-container',
+                items: bar,
+                cls: 't-bar t-' + position
+            };
+        
+        var bar = element[position] = Tea.manifest(bar);
+        bar.each(function(i, item) {
+            item.context = item.context || element;
+        });
+        
+        bar.panel = element;
+        
+        if (position == 'top')
+            this.content.before(bar.render());
+        else
+            this.content.after(bar.render());
+        
+        this.source.addClass('t-has-' + position);
+    },
     setTitle : function(title)
     {
         this.title.empty().append(title);
-    },
-    setBars : function(top, bottom)
-    {
-        var element = this.element;
-        if (top) {
-            this.top = Tea.Container({cls: 't-bar t-top', items: top});
-            this.top.each(function(i, item) {
-                item.context = item.context || element;
-            })
-            this.top.panel = this.element;
-            this.title.after(this.top.render());
-            this.source.addClass('t-has-top');
-        }
-        if (bottom)
-        {
-            this.bottom = Tea.Container({cls: 't-bar t-bottom', items: bottom});
-            this.bottom.each(function(i, item) {
-                item.context = item.context || element;
-            })
-            this.bottom.panel = this.element;
-            this.content.after(this.bottom.render());
-            this.source.addClass('t-has-bottom');
-        }
     },
     append : function(src)
     {
@@ -1416,14 +1464,14 @@ Tea.Dialog.Skin = Tea.Panel.Skin.extend('t-dialog-skin', {
     resize : function(speed)
     {
         var element = this.element;
-        var source = this.source;
+        var source = this.source.stop();
         
         var height = source.height();
         if (height > $(document).height() - 8)
             source.height($(document).height() - 8);
         
         if (element.placement == 'top')
-            source.animate( {top: 20, 
+            source.animate( {top: 20,
                              opacity: element.opacity}, 
                              speed || element.speed, element.easing);
         else if (element.placement == 'center')
@@ -2061,60 +2109,6 @@ Tea.List = Tea.Container.extend('t-list', {
     }
 });
 
-/////////////////////////////////////////////////////////// src/resource.js //
-/** Tea.Resource
-    
-    @requires Tea
- **/
-
-Tea.Session = Tea.Class('t-session', {
-    options: {
-        key: '_uri',
-        type: '_type'
-    },
-    __init__ : function(opts) {
-        this.cache = {};
-        this.__super__(opts);
-    },
-    resource : function(obj)
-    {
-        if (obj instanceof Tea.Object)
-            return obj;
-        
-        var key = obj[this.key];
-            
-        if (key == undefined || key == null) {
-            return obj;
-        } else {
-            var existing = this.cache[key];
-            if (typeof existing != 'object') {
-                obj = this.cache[key] = this.build(obj);
-            } else {
-                $.extend(existing, obj);
-                obj = existing;
-                obj.trigger('change');
-            }
-        }
-        
-        return obj;
-    },
-    build : function(obj) {
-        if (obj instanceof Tea.Object) return obj;
-        
-        var typeName = obj[this.type];
-        
-        if (typeof typeName != 'string')
-            return Tea.Object(obj);
-        
-        return Tea.getClass(typeName)(obj);
-    }
-});
-
-Tea._session = Tea.Session();
-Tea.Resource = function() {
-    return Tea._session.resource.apply(Tea._session, arguments);
-};
-
 ////////////////////////////////////////////////////////////// src/stack.js //
 /** Tea.Stack
 
@@ -2130,7 +2124,7 @@ Tea.Resource = function() {
 Tea.Stack = Tea.Container.extend('t-stack', {
     options: {
         skin: 't-stack-skin',
-        margin: 6,
+        margin: 0,
 //        anchor: 0
     },
     __init__ : function(options)
@@ -2173,7 +2167,7 @@ Tea.Stack = Tea.Container.extend('t-stack', {
             this.play();
         }
         
-        this.append(item);
+        return this.append(item);
     },
     /** Tea.Stack.pop( [item] )
         
@@ -2209,7 +2203,7 @@ Tea.Stack = Tea.Container.extend('t-stack', {
     },
     popAfter : function( item )
     {
-        if (item.parent !== this) throw new Error("Trying to popAfter() an item that isn't in this Tea.Stack");
+        if (item.parent !== this) return; // throw new Error("Trying to popAfter() an item that isn't in this Tea.Stack");
         
         this.pause();
         
@@ -2274,6 +2268,7 @@ Tea.Stack.Skin = Tea.Container.Skin.extend('t-stack-skin', {
         
         var start = items.length - show;
         var left = gutter;
+        var z = 10000;
         
         element.each(function(index, item) {
             if (index < start) {
@@ -2281,10 +2276,13 @@ Tea.Stack.Skin = Tea.Container.Skin.extend('t-stack-skin', {
                 return;
             }
             
+            z = z - 1;
+            
             if (item == new_item)
                 item.source.css({
                   left: left,
                   opacity: 0,
+                  'z-index': z
                 });
             
             item.source
@@ -2636,10 +2634,10 @@ Tea.Button = Tea.Element.extend('t-button', {
         text: '',
         icon: '',
         disabled: false,
-        click: null,
         context: null,
         hasFocus: null,
-        skin: 't-button-skin'
+        skin: 't-button-skin',
+        href: null
     },
     __init__ : function(options)
     {
@@ -2690,6 +2688,16 @@ Tea.Button = Tea.Element.extend('t-button', {
         if (this.isRendered())
             this.skin.setIcon(icon);
     },
+    getHref : function()
+    {
+        return this.href;
+    },
+    setHref : function(href)
+    {
+        this.href = href;
+        if (this.isRendered())
+            this.skin.setHref(href);
+    },
     getIcon : function()
     {
         return this.icon;
@@ -2713,13 +2721,15 @@ Tea.Button = Tea.Element.extend('t-button', {
     },
     performClick : function()
     {
+        if (!this.click && this.href) return true;
+        if (!this.click) return false;
         if (this.disabled) return false;
         
         var context = this.context || this;
         
         try {
             if (typeof(this.click) == 'string') return context[this.click].apply(context);
-            if (typeof(this.click) == 'function') return this.click.apply(context);
+            if (jQuery.isFunction(this.click)) return this.click.apply(context);
         } catch(e) {
             if (console && console.error)
                 console.error(e);
@@ -2763,9 +2773,8 @@ Tea.Button.Skin = Tea.Skin.extend('t-button-skin', {
             source.removeClass('t-focus');
         });
         
-        if (element.click)
-            source.click(Tea.method(element.performClick, element));
-            
+        element.hook(source, 'click', element.performClick);
+        
         source.hover(
             function() {
                 if (!element.disabled)
@@ -2775,6 +2784,9 @@ Tea.Button.Skin = Tea.Skin.extend('t-button-skin', {
                 source.removeClass('t-button-hover');
             }
         )
+        
+        if (element.href)
+            this.setHref(element.href);
         
         return source;
     },
@@ -2787,6 +2799,9 @@ Tea.Button.Skin = Tea.Skin.extend('t-button-skin', {
     setText : function(text)
     {
         this.text.empty().append(text);
+    },
+    setHref : function(href) {
+        this.source.attr('href', href);
     },
     setIcon : function(icon)
     {
@@ -2815,13 +2830,13 @@ Tea.Button.Skin = Tea.Skin.extend('t-button-skin', {
     @extends Tea.Container
  **/
 
-Tea.Tree = Tea.Container.extend('t-tree-item', {
+Tea.Tree = Tea.Container.extend('t-tree', {
     options: {
         expanded: false,
         icon: null,
         text: null,
         skin: 'Tea.Tree.Skin',
-        click: null,
+        /*click: null,*/
         context: null
     },
     expand : function() {
@@ -2837,6 +2852,9 @@ Tea.Tree = Tea.Container.extend('t-tree-item', {
     setExpanded : function(flag) {
         if (flag) return this.expand();
         return this.collapse();
+    },
+    clickAnchor : function() {
+        this.setExpanded(!this.expanded);
     },
     setText : function(src) {
         this.text = src;
@@ -2857,12 +2875,20 @@ Tea.Tree = Tea.Container.extend('t-tree-item', {
     {
         this.__super__();
         this.setExpanded(this.expanded);
+    },
+    walk : function(func)
+    {
+        for(var i = 0; i < this.items.length; i++) {
+            func(this.items[i]);
+            var next = this.items[i].walk;
+            if (next) next(func);
+        }
     }
 });
 
 Tea.Tree.Skin = Tea.Container.Skin.extend('Tea.Tree.Skin', {
     options: {
-        cls: 't-tree-item'
+        cls: 't-tree'
     },
     render : function(source) {
         this.head = $('<div class="t-head">');
@@ -2875,9 +2901,13 @@ Tea.Tree.Skin = Tea.Container.Skin.extend('Tea.Tree.Skin', {
         this.button = Tea.Button({
             text: this.element.text,
             icon: this.element.icon,
-            click: Tea.method(this.element.click || jQuery.noop, this.element.context || this.element)
+            click: this.element.click ? Tea.method(this.element.click || jQuery.noop, this.element.context || this.element) : null,
+            href: this.element.href
         });
         this.button.render().appendTo(this.head);
+        
+        if (this.element.text == null)
+            this.button.hide();
         
         this.anchor = $('<div class="t-anchor t-icon">')
                         .prependTo(this.button.source)
@@ -2899,6 +2929,11 @@ Tea.Tree.Skin = Tea.Container.Skin.extend('Tea.Tree.Skin', {
     },
     setText : function(src) {
         this.button.setText(src);
+        if (src == null) {
+            this.button.hide();
+        } else {
+            this.button.show();
+        }
     },
     setIcon : function(icon) {
         this.button.setIcon(icon);
@@ -2921,7 +2956,7 @@ Tea.Tree.Skin = Tea.Container.Skin.extend('Tea.Tree.Skin', {
         else this.tail.hide();
     },
     clickAnchor : function() {
-        this.element.setExpanded(!this.element.expanded);
+        this.element.clickAnchor();
         return false;
     },
     setAnchor : function(anchor) {

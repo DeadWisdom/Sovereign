@@ -4,10 +4,8 @@ pip-log.txt
 env
 settings_local.py
 sqlite.db
-_cache
-assets
-.sandbox
+/.sandbox
 *.so
-build
-dist
+/build
+/dist
 sovereign.egg-info

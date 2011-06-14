@@ -17,7 +17,7 @@ class TestNode(TestCase):
         
         self.node = LocalNode(path=path, id='nodeA')
         self._server = eventlet.spawn(self.node.serve, ('127.0.0.1', self.ports[0]))
-        eventlet.sleep(0)
+        self.node.nanny()
     
     def tearDown(self):
         self.node.terminate()
@@ -29,65 +29,64 @@ class TestNode(TestCase):
             except:
                 pass
     
+    def _test_service(self, name, config):
+        self.node.create_service(name, config)
+        service = self.node._get_service(name)
+        self.assertTrue(service.nanny())
+        self.node.delete_service(name)
+    
     def test_file_dir(self):
-        basic = {
+        name = "test_file_dir"
+        config = {
             'type': 'sovereign.service.base.Service',
             'src': 'file:tests/src'
         }
-        self.node.create_service('basic', basic)
-        self.assertFalse(self.node._get_service('basic').failed)
-        self.node.delete_service('basic')
+        self._test_service(name, config)
         
     def test_file_tar_gz(self):
-        basic = {
+        name = "test_file_tar_gz"
+        config = {
             'type': 'sovereign.service.base.Service',
             'src': 'file:tests/src.tar.gz'
         }
-        self.node.create_service('basic', basic)
-        self.assertFalse(self.node._get_service('basic').failed)
-        self.node.delete_service('basic')
+        self._test_service(name, config)
     
     def test_rsync(self):
-        basic = {
+        name = "test_rsync"
+        config = {
             'type': 'sovereign.service.base.Service',
             'src': 'rsync:tests/src'
         }
-        self.node.create_service('basic', basic)
-        self.assertFalse(self.node._get_service('basic').failed)
-        self.node.delete_service('basic')
+        self._test_service(name, config)
     
     def test_hg(self):
-        basic = {
+        name = "test_hg"
+        config = {
             'type': 'sovereign.service.base.Service',
             'src': 'hg:http://bitbucket.org/DeadWisdom/jsbundle'
         }
-        self.node.create_service('basic', basic)
-        self.assertFalse(self.node._get_service('basic').failed)
-        self.node.delete_service('basic')
+        self._test_service(name, config)
     
     def test_git(self):
-        basic = {
+        name = "test_git"
+        config = {
             'type': 'sovereign.service.base.Service',
             'src': 'git://github.com/DeadWisdom/Vanilla.git'
         }
-        self.node.create_service('basic', basic)
-        self.assertFalse(self.node._get_service('basic').failed)
-        self.node.delete_service('basic')
+        self._test_service(name, config)
     
     def test_svn(self):
-        basic = {
+        name = "test_svn"
+        config = {
             'type': 'sovereign.service.base.Service',
             'src': 'svn:http://jquery-json.googlecode.com/svn/trunk/'
         }
-        self.node.create_service('basic', basic)
-        self.assertFalse(self.node._get_service('basic').failed)
-        self.node.delete_service('basic')
+        self._test_service(name, config)
     
     def test_http_tar_gz(self):
-        basic = {
+        name = "test_http_tar_gz"
+        config = {
             'type': 'sovereign.service.base.Service',
             'src': 'http://github.com/DeadWisdom/Vanilla/tarball/master'
         }
-        self.node.create_service('basic', basic)
-        self.assertFalse(self.node._get_service('basic').failed)
-        self.node.delete_service('basic')
+        self._test_service(name, config)

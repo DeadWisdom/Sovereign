@@ -189,7 +189,8 @@ ServicePanel = Tea.Panel.extend('ServicePanel', {
         else this._scrollTop = false;
     },
     refresh : function() {
-        var button = this.skin.top.items[3];
+        console.log(this.top);
+        var button = this.top.items[3];
         if (this.value.disabled) {
             button.setText('enable');
             button.setIcon('enable');

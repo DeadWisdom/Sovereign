@@ -33,7 +33,6 @@ def run():
             return
         
         pid = baron.start_daemon(pid_file, working_dir=options.repository)
-        print "Okay!"
     
     if os.geteuid() == 0:
         baron.fork()
@@ -41,7 +40,7 @@ def run():
     if options.user:
         baron.set_owner(options.user)
         
-    node = LocalNode(options.repository, log_level=log_level, baron=baron)
+    node = LocalNode(options.repository, log_level=log_level, baron=baron, address=options.address)
     
     node.serve()
 

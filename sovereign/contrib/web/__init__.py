@@ -12,7 +12,7 @@ from static import Static
 from fastcgi import FastCGI
 
 
-class WebService(service.Service):
+class Service(service.Service):
     name = "web"
     
     settings = [
@@ -48,11 +48,11 @@ class WebService(service.Service):
         self.address = None
     
     def start(self):
-        super(WebService, self).start()
+        super(Service, self).start()
         self.serve()
         
     def stop(self):
-        super(WebService, self).stop()
+        super(Service, self).stop()
         self.close()
         self.status = "stopped"
     
@@ -60,7 +60,7 @@ class WebService(service.Service):
         if hasattr(service, 'route_msg'):
             self.logger.debug("Routing to service: %s", service.id)
             response = service.msg('route', environ=env, start_response=start_response)
-            if response:
+            if response is not None:
                 return response
             else:
                 self.logger.debug("Service failed to give a response: %r", service.id)
@@ -74,11 +74,11 @@ class WebService(service.Service):
                     return app(env, start_response)
         if service.settings.get('web.fastcgi'):
             return FastCGI(service.address)
+    
         return Proxy(service.address)(env, start_response)
     
     def __call__(self, env, start_response):
-        start_response('200 OK', [('Content-Type', 'text/plain')])
-        host_request, _, _ = env.get('HTTP_HOST').partition(":")
+        host_request, _, _ = env.get('HTTP_HOST', '').partition(":")
         for service in self.node.services:
             if not service.started or service.failed: continue
             hosts = service.settings.get('web.host')
@@ -88,7 +88,7 @@ class WebService(service.Service):
             for host in hosts:
                 if host == '*' or host == host_request:
                     response = self.service_route(service, env, start_response)
-                    if response: return response
+                    if response is not None: return response
         
         if (self.settings['motd'] and env['PATH_INFO'] == '/'):
             return http.BasicResponse("Message of the Day", self.settings['motd'])(env, start_response)

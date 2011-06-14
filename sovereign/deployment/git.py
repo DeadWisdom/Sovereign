@@ -16,15 +16,15 @@ class Deployment(DeploymentBase):
         if self.has_git(path):
             cwd = os.path.abspath('.')
             os.chdir(path)
-            out, err = self.command("git", "pull")
+            out, err, _ = self.command("git", "pull")
             os.chdir(cwd)
             if err:
                 raise DeploymentFailed(err)
             return out.find("Already up-to-date") == -1
         else:
-            out, err = self.command("git", "clone", src, path)
+            out, err, _ = self.command("git", "clone", src, path)
             if err:
-                raise DeploymentFailed(err)                
+                raise DeploymentFailed(err)
             return True
 
 Deployment.register('git')

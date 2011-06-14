@@ -53,11 +53,11 @@ class Service(object):
         self._deployment = None
         self._last_returncode = None
         
-        self.path = os.path.join(node.path, 'services', id)
+        self.path = os.path.join(node.path, id)
         if not os.path.exists(self.path):
             os.makedirs(self.path)
             
-        self._log_path = os.path.join(node.path, 'logs', id)
+        self._log_path = os.path.join(node.path, '_logs', id)
         if not os.path.exists(self._log_path):
             os.makedirs(self._log_path)
         
@@ -66,12 +66,9 @@ class Service(object):
         self.started = False
         self.failed = False
         
-        user_settings = settings or {}
-        user_settings['path'], user_settings['id'] = self.path, self.id
-        
-        self.settings = Settings(["default", "config", "user"])
-        self.settings.extend(self.__class__.fields)
-        self.settings.update(user_settings, "user")
+        self.settings = Settings(self.__class__.fields)
+        self.settings.update(settings or {}, "user")
+        self.settings['id'] = id
         
         self.status = "ready"
         if self.settings['disabled']:
@@ -84,18 +81,29 @@ class Service(object):
     
     def command(self, *args, **kw):
         self.logger.info("> " + " ".join(args))
-        out, err, returncode = shell(self.path, " ".join(args))
+                
+        suppress = kw.get('suppress', False)
+        nofail = kw.get('nofail', True)
+        timeout = kw.get('timeout', None)
         
-        if err:
+        if (timeout):
+            with Timeout(timeout, False):
+                out, err, returncode = shell(self.path, " ".join(args))
+            if returncode is None:
+                raise RuntimeError("Command timed-out.")
+        else:
+            out, err, returncode = shell(self.path, " ".join(args))
+
+        if err and not suppress:
             self.logger.error(err)
             
-        if out:
-            if not kw.get('suppress_out', False):
-                self.logger.info(out)
+        if out and not suppress:
+            self.logger.info(out)
+            
+        if nofail and returncode != 0:
+            raise RuntimeError("Command failed: %d" % returncode)
         
-        self._last_returncode = returncode
-        
-        return out, err
+        return out, err, returncode
     
     def delete(self):
         self.stop()
@@ -148,7 +156,6 @@ class Service(object):
         """
         If I have a src, go and get that.
         """
-        
         src = self.settings.get('src', None)
         
         if src is not None:
@@ -176,6 +183,15 @@ class Service(object):
         while self.started and not self.failed:
             self.tick()
             eventlet.sleep(.1)
+    
+    def nanny(self):
+        """
+        Waits for the service to start, and then returns True if it didn't
+        fail.  Usefull for testing.
+        """      
+        while not self.started and not self.failed:
+            eventlet.sleep(.1)
+        return not self.failed
     
     def tick(self):
         """
