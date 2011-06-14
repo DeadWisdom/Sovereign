@@ -51,7 +51,6 @@ class Service(object):
         self.id = id
         self.node = node
         self._deployment = None
-        self._last_returncode = None
         
         self.path = os.path.join(node.path, id)
         if not os.path.exists(self.path):
@@ -225,8 +224,8 @@ class Service(object):
         for cmd in self.settings['deploy']:
             cmd = cmd.strip()
             if not cmd or cmd.startswith('#'): continue
-            self.command(cmd)
-            if self._last_returncode != 0:
+            out, err, rc = self.command(cmd)
+            if rc != 0:
                 raise RuntimeError("Error in deployment script.")
     
     def deploy_failed_msg(self):

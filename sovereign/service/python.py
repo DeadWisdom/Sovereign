@@ -31,12 +31,12 @@ class PythonService(ProcessService):
         if virtualenv:
             for req in requires:
                 cmd = 'pip -E %s install %s' % (virtualenv, req)
-                out, err, _ = self.command(cmd)
+                out, err, rc = self.command(cmd)
         
                 if err:
                     if "mysql-python" in self.requires:
                         self.logger.warning("mysql-python might require 'mysql_config'; 'apt-get install libmysqlclient-dev' or your package management equivalent might fix this problem.")
-                    if (self._last_returncode != 0):
+                    if (rc != 0):
                         raise RuntimeError("Error installing python packages.")
         
         return super(PythonService, self).deploy_msg()
