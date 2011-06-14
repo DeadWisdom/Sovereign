@@ -87,7 +87,7 @@ class Service(object):
         timeout = kw.get('timeout', None)
         
         if (timeout):
-            with Timeout(timeout, False):
+            with eventlet.Timeout(timeout, False):
                 out, err, returncode = shell(self.path, " ".join(args))
             if returncode is None:
                 raise RuntimeError("Command timed-out.")
