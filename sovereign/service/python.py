@@ -23,7 +23,10 @@ class PythonService(ProcessService):
     
     def deploy_msg(self):
         virtualenv = self.settings['virtualenv']
-        requires = set(self.settings['requires'] + self._requires)
+    
+        requires = set()
+        requires.update(self.settings['requires'])
+        requires.update(self._requires)
         
         if virtualenv:
             for req in requires:
